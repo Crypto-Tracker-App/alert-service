@@ -1,6 +1,3 @@
-from redis import Redis
-
-
 import os
 
 class Config:
@@ -37,15 +34,7 @@ class DevelopmentConfig(Config):
     
 class ProductionConfig(Config):
     DEBUG = False
-    SESSION_TYPE = "redis"
     SESSION_USE_SIGNER = True
     SESSION_KEY_PREFIX = "session:"
     SESSION_PERMANENT = True
     PERMANENT_SESSION_LIFETIME = 60 * 60 * 4
-    SESSION_REDIS = Redis(
-        host=os.environ.get("REDIS_HOST"),
-        port=int(os.environ.get("REDIS_PORT", 6379)),
-        password=os.environ.get("REDIS_PASSWORD"),
-        socket_connect_timeout=5,
-        retry_on_timeout=True
-    )
