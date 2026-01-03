@@ -36,5 +36,6 @@ class ProductionConfig(Config):
     DEBUG = False
     SESSION_USE_SIGNER = True
     SESSION_KEY_PREFIX = "session:"
+    SESSION_TYPE = "filesystem"
     SESSION_PERMANENT = True
     PERMANENT_SESSION_LIFETIME = 60 * 60 * 4
