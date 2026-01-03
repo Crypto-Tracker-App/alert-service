@@ -69,12 +69,10 @@ jobs:
           cluster-name: ${{ vars.AKS_NAME }}
           resource-group: ${{ vars.AKS_RG }}
 
-      - name: Deploy PostgreSQL and Redis
+      - name: Deploy PostgreSQL
         run: |
           kubectl apply -f k8s/postgresql-deployment.yaml
           kubectl apply -f k8s/postgresql-service.yaml
-          kubectl apply -f k8s/redis-deployment.yaml
-          kubectl apply -f k8s/redis-service.yaml
 
       - name: Apply alertservice ConfigMap
         run: |
