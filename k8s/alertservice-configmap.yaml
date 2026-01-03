@@ -10,6 +10,4 @@ data:
   POSTGRES_PORT: "5432"
   POSTGRES_USER: "alert_user"
   POSTGRES_DB: "crypto_alerts"
-  REDIS_HOST: "redis"
-  REDIS_PORT: "6379"
   PORT: "5000"

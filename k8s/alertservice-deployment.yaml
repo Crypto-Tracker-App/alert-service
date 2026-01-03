@@ -81,16 +81,6 @@ spec:
             configMapKeyRef:
               name: alertservice-config
               key: POSTGRES_DB
-        - name: REDIS_HOST
-          valueFrom:
-            configMapKeyRef:
-              name: alertservice-config
-              key: REDIS_HOST
-        - name: REDIS_PORT
-          valueFrom:
-            configMapKeyRef:
-              name: alertservice-config
-              key: REDIS_PORT
         - name: PORT
           valueFrom:
             configMapKeyRef:
@@ -101,11 +91,6 @@ spec:
             secretKeyRef:
               name: alertservice-secret
               key: POSTGRES_PASSWORD
-        - name: REDIS_PASSWORD
-          valueFrom:
-            secretKeyRef:
-              name: alertservice-secret
-              key: REDIS_PASSWORD
         - name: SECRET_KEY
           valueFrom:
             secretKeyRef:
