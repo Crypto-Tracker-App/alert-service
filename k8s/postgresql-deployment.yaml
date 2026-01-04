@@ -21,14 +21,14 @@ spec:
         - containerPort: 5432
         env:
         - name: POSTGRES_USER
-          value: "user"
+          value: "alert_user"
         - name: POSTGRES_PASSWORD
           valueFrom:
             secretKeyRef:
               name: alertservice-secret
               key: POSTGRES_PASSWORD
         - name: POSTGRES_DB
-          value: "crypto_tracker"
+          value: "crypto_alerts"
         volumeMounts:
         - name: postgres-storage
           mountPath: /var/lib/postgresql/data
