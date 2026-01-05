@@ -1,25 +1,44 @@
 import os
-import requests
+import jwt
+import logging
 from flask import request, jsonify, g
 from functools import wraps
 
-AUTH_SERVICE_URL = os.environ.get('AUTH_SERVICE_URL', 'http://auth-service:5000')
+logger = logging.getLogger(__name__)
+
+SECRET_KEY = os.environ.get("SECRET_KEY", "dev-secret-key-change-in-production")
+ALGORITHM = "HS256"
 
 def auth_required(f):
     @wraps(f)
     def decorated(*args, **kwargs):
-        auth = request.headers.get('Authorization')
-        if not auth:
+        auth_header = request.headers.get('Authorization')
+        
+        if not auth_header:
             return jsonify({'error': 'Unauthorized'}), 401
+        
         try:
-            r = requests.get(f"{AUTH_SERVICE_URL}/api/auth/verify-session", headers={'Authorization': auth}, timeout=3)
-            if r.status_code == 200:
-                g.current_user = r.json().get('user')
-                return f(*args, **kwargs)
+            token = auth_header.split(' ')[1] if ' ' in auth_header else auth_header
+            payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+            
+            g.current_user = {
+                'user_id': payload.get('user_id'),
+                'username': payload.get('username')
+            }
+            # Also set on request for backwards compatibility
+            request.user_id = payload.get('user_id')
+            request.username = payload.get('username')
+            return f(*args, **kwargs)
+        except jwt.ExpiredSignatureError:
+            logger.error("Token has expired")
+            return jsonify({'error': 'Token expired'}), 401
+        except jwt.InvalidTokenError:
+            logger.error("Invalid token")
+            return jsonify({'error': 'Invalid token'}), 401
         except Exception:
-            pass
-        return jsonify({'error': 'Unauthorized'}), 401
+            return jsonify({'error': 'Unauthorized'}), 401
     return decorated
 
 def require_auth(f):
+    """Alias for auth_required for backwards compatibility"""
     return auth_required(f)

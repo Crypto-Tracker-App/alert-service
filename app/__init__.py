@@ -2,7 +2,7 @@ from flask import Flask
 from os import getenv
 
 from .config import DevelopmentConfig, ProductionConfig
-from .extensions import db, session_manager, scheduler
+from .extensions import db, scheduler
 
 
 def create_app():
@@ -17,7 +17,6 @@ def create_app():
     
     # Initialize extensions
     db.init_app(app)
-    session_manager.init_app(app)
     
     # Register blueprints
     from .api import alerts_blueprint
