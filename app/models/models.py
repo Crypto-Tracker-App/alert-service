@@ -3,7 +3,7 @@ from sqlalchemy import Column, String, DateTime, Float, Boolean
 import uuid
 from datetime import datetime, timezone
 
-from .extensions import db
+from app.extensions import db
 
 def generate_unique_id():
     return str(uuid.uuid4())
