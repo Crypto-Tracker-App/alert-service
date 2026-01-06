@@ -1,4 +1,4 @@
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, g
 from app.services.alert_service import create_alert, get_user_alerts, deactivate_alert
 from app.middleware.auth_middleware import require_auth
 
@@ -85,7 +85,7 @@ def set_alert():
             return jsonify({"error": "threshold_price must be greater than 0"}), 400
         
         # Get user_id from auth middleware
-        user_id = request.user_id
+        user_id = g.current_user['user_id']
         
         alert = create_alert(user_id, coin_id, threshold_price)
         
@@ -148,7 +148,7 @@ def get_alerts():
               type: string
     """
     try:
-        user_id = request.user_id
+        user_id = g.current_user['user_id']
         alerts = get_user_alerts(user_id)
         
         return jsonify({

@@ -3,7 +3,7 @@ from os import getenv
 from flasgger import Swagger
 
 from .config import DevelopmentConfig, ProductionConfig
-from .extensions import db, session_manager, scheduler
+from .extensions import db, scheduler
 
 
 def create_app():
@@ -55,11 +55,10 @@ def create_app():
     
     # Initialize extensions
     db.init_app(app)
-    session_manager.init_app(app)
     
     # Register blueprints
     from .api import alerts_blueprint
-    app.register_blueprint(alerts_blueprint, url_prefix='/api/alerts')
+    app.register_blueprint(alerts_blueprint, url_prefix='/api')
     
     # Create tables
     with app.app_context():

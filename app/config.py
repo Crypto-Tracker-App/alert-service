@@ -1,7 +1,7 @@
 import os
 
 class Config:
-    SECRET_KEY = os.environ.get("SECRET_KEY")
+    SECRET_KEY = os.environ.get("SECRET_KEY", "dev-secret-key-change-in-production")
     PORT = int(os.environ.get("PORT", 5000))
 
     DB_USER = os.environ.get("POSTGRES_USER")
@@ -21,21 +21,11 @@ class Config:
     MAX_CONTENT_LENGTH = 1 * 1024 * 1024
     JSON_MAX_CONTENT_LENGTH = 16 * 1024
 
-    SESSION_COOKIE_SECURE = True
-    SESSION_COOKIE_SAMESITE = "Lax"
-    SESSION_COOKIE_HTTPONLY = True
-
+    AUTH_SERVICE_URL = os.environ.get("AUTH_SERVICE_URL", "http://user-service:5000")
     FRONTEND_URL = os.environ.get("FRONTEND_URL")
 
 class DevelopmentConfig(Config):
     DEBUG = True
-    SESSION_TYPE = "filesystem"
-    SESSION_COOKIE_SECURE= False
-    
+
 class ProductionConfig(Config):
     DEBUG = False
-    SESSION_USE_SIGNER = True
-    SESSION_KEY_PREFIX = "session:"
-    SESSION_TYPE = "filesystem"
-    SESSION_PERMANENT = True
-    PERMANENT_SESSION_LIFETIME = 60 * 60 * 4
