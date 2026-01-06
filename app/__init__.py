@@ -20,7 +20,7 @@ def create_app():
     
     # Register blueprints
     from .api import alerts_blueprint
-    app.register_blueprint(alerts_blueprint, url_prefix='/api/alerts')
+    app.register_blueprint(alerts_blueprint, url_prefix='/api')
     
     # Create tables
     with app.app_context():
