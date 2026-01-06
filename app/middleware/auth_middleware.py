@@ -10,7 +10,18 @@ ALGORITHM = "HS256"
 
 def get_secret_key():
     """Get SECRET_KEY from Flask app config."""
-    return current_app.config.get('SECRET_KEY') or os.getenv('SECRET_KEY', 'dev-secret-key-change-in-production')
+    try:
+        secret = current_app.config.get('SECRET_KEY')
+        if secret:
+            logger.debug(f"Using SECRET_KEY from config: {str(secret)[:20]}...")
+            return secret
+    except RuntimeError:
+        # No app context, fallback to environment variable
+        logger.warning("current_app not available, falling back to environment variable")
+    
+    env_key = os.getenv('SECRET_KEY', 'dev-secret-key-change-in-production')
+    logger.debug(f"Using SECRET_KEY from environment: {str(env_key)[:20]}...")
+    return env_key
 
 def auth_required(f):
     @wraps(f)
