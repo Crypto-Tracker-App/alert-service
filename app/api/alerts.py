@@ -13,7 +13,7 @@ def set_alert():
     tags:
       - Alerts
     security:
-      - SessionAuth: []
+      - BearerAuth: []
     parameters:
       - in: body
         name: body
@@ -110,7 +110,7 @@ def get_alerts():
     tags:
       - Alerts
     security:
-      - SessionAuth: []
+      - BearerAuth: []
     responses:
       200:
         description: Successfully retrieved user alerts
@@ -175,7 +175,7 @@ def delete_alert(alert_id):
     tags:
       - Alerts
     security:
-      - SessionAuth: []
+      - BearerAuth: []
     parameters:
       - in: path
         name: alert_id

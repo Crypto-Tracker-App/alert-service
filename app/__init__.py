@@ -25,14 +25,15 @@ def create_app():
             "version": "1.0.0"
         },
         "securityDefinitions": {
-            "SessionAuth": {
+            "BearerAuth": {
                 "type": "apiKey",
-                "name": "session_id",
-                "in": "header"
+                "name": "Authorization",
+                "in": "header",
+                "description": "JWT Bearer token for authentication. Format: Bearer <token>"
             }
         },
         "security": [
-            {"SessionAuth": []}
+            {"BearerAuth": []}
         ]
     }
     
