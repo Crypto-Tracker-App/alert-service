@@ -1,6 +1,7 @@
 from app.models import Alert
 from app.extensions import db
 from app.services.coin_service import get_coin_price
+from app.services.push_service import trigger_alert_push_notification
 from sqlalchemy import and_
 
 def create_alert(user_id: str, coin_id: str, threshold_price: float) -> Alert:
@@ -41,18 +42,10 @@ def check_all_alerts():
         current_price = get_coin_price(alert.coin_id)
         
         if current_price is not None and current_price >= alert.threshold_price:
-            # Trigger notification
-            trigger_alert_notification(
+            trigger_alert_push_notification(
                 user_id=alert.user_id,
                 coin_id=alert.coin_id,
                 current_price=current_price,
                 threshold_price=alert.threshold_price
             )
 
-def trigger_alert_notification(user_id: str, coin_id: str, current_price: float, threshold_price: float):
-    """
-    Trigger a push notification for the user when threshold is met.
-    (Integration point for push notification service)
-    """
-    # Placeholder for push notification logic
-    print(f"Alert triggered for user {user_id}: {coin_id} reached ${current_price} (threshold: ${threshold_price})")

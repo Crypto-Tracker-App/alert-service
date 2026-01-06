@@ -1,5 +1,6 @@
 from flask import Blueprint, request, jsonify, g
 from app.services.alert_service import create_alert, get_user_alerts, deactivate_alert
+from app.services.push_service import subscribe_to_push
 from app.middleware.auth_middleware import require_auth
 
 alerts_blueprint = Blueprint('alerts', __name__)
@@ -79,5 +80,34 @@ def delete_alert(alert_id):
             return jsonify({"error": "Alert not found"}), 404
         
         return jsonify({"message": "Alert deactivated successfully"}), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+@alerts_blueprint.route('/subscribe-notifications', methods=['POST'])
+@require_auth
+def subscribe_notifications():
+    """Register a push notification subscription."""
+    try:
+        data = request.get_json()
+        
+        if not data or 'subscription' not in data:
+            return jsonify({"error": "Missing subscription data"}), 400
+        
+        user_id = g.current_user['user_id']
+        subscription = subscribe_to_push(user_id, data['subscription'])
+        
+        return jsonify({"message": "Subscription registered successfully"}), 201
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@alerts_blueprint.route('/check-alerts', methods=['POST'])
+def check_alerts():
+    """
+    Internal endpoint called by pricing-service after market data updates.
+    No authentication required as it's called from pricing-service.
+    """
+    try:
+        from app.services.alert_service import check_all_alerts
+        check_all_alerts()
+        return jsonify({"message": "Alert check completed"}), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 500

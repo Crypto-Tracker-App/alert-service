@@ -4,6 +4,7 @@ import os
 from flask import request, jsonify, g, current_app
 from functools import wraps
 
+
 logger = logging.getLogger(__name__)
 
 ALGORITHM = "HS256"
