@@ -10,12 +10,68 @@ alerts_blueprint = Blueprint('alerts', __name__)
 def set_alert():
     """
     Set a custom price alert for a coin.
-    
-    Request body:
-    {
-        "coin_id": "bitcoin",
-        "threshold_price": 50000
-    }
+    ---
+    tags:
+      - Alerts
+    security:
+      - BearerAuth: []
+    parameters:
+      - in: body
+        name: body
+        required: true
+        schema:
+          type: object
+          properties:
+            coin_id:
+              type: string
+              description: The ID of the cryptocurrency
+              example: "bitcoin"
+            threshold_price:
+              type: number
+              format: float
+              description: The price threshold to trigger the alert
+              example: 50000
+          required:
+            - coin_id
+            - threshold_price
+    responses:
+      201:
+        description: Alert successfully created
+        schema:
+          type: object
+          properties:
+            id:
+              type: integer
+              example: 1
+            coin_id:
+              type: string
+              example: "bitcoin"
+            threshold_price:
+              type: number
+              format: float
+              example: 50000
+            is_active:
+              type: boolean
+              example: true
+            created_at:
+              type: string
+              format: date-time
+              example: "2026-01-04T12:34:56"
+      400:
+        description: Invalid request data
+        schema:
+          type: object
+          properties:
+            error:
+              type: string
+              example: "Missing required fields: coin_id, threshold_price"
+      500:
+        description: Internal server error
+        schema:
+          type: object
+          properties:
+            error:
+              type: string
     """
     try:
         data = request.get_json()
@@ -49,7 +105,49 @@ def set_alert():
 @alerts_blueprint.route('/alerts', methods=['GET'])
 @require_auth
 def get_alerts():
-    """Get all active alerts for the current user."""
+    """
+    Retrieve all active alerts for the current user.
+    ---
+    tags:
+      - Alerts
+    security:
+      - BearerAuth: []
+    responses:
+      200:
+        description: Successfully retrieved user alerts
+        schema:
+          type: object
+          properties:
+            alerts:
+              type: array
+              items:
+                type: object
+                properties:
+                  id:
+                    type: integer
+                    example: 1
+                  coin_id:
+                    type: string
+                    example: "bitcoin"
+                  threshold_price:
+                    type: number
+                    format: float
+                    example: 50000
+                  is_active:
+                    type: boolean
+                    example: true
+                  created_at:
+                    type: string
+                    format: date-time
+                    example: "2026-01-04T12:34:56"
+      500:
+        description: Internal server error
+        schema:
+          type: object
+          properties:
+            error:
+              type: string
+    """
     try:
         user_id = g.current_user['user_id']
         alerts = get_user_alerts(user_id)
@@ -72,7 +170,45 @@ def get_alerts():
 @alerts_blueprint.route('/alerts/<alert_id>', methods=['DELETE'])
 @require_auth
 def delete_alert(alert_id):
-    """Deactivate an alert."""
+    """
+    Deactivate an alert by ID.
+    ---
+    tags:
+      - Alerts
+    security:
+      - BearerAuth: []
+    parameters:
+      - in: path
+        name: alert_id
+        type: string
+        required: true
+        description: The ID of the alert to deactivate
+        example: "1"
+    responses:
+      200:
+        description: Alert successfully deactivated
+        schema:
+          type: object
+          properties:
+            message:
+              type: string
+              example: "Alert deactivated successfully"
+      404:
+        description: Alert not found
+        schema:
+          type: object
+          properties:
+            error:
+              type: string
+              example: "Alert not found"
+      500:
+        description: Internal server error
+        schema:
+          type: object
+          properties:
+            error:
+              type: string
+    """
     try:
         success = deactivate_alert(alert_id)
         

@@ -1,5 +1,6 @@
 from flask import Flask
 from os import getenv
+from flasgger import Swagger
 
 from .config import DevelopmentConfig, ProductionConfig
 from .extensions import db, scheduler
@@ -14,6 +15,44 @@ def create_app():
         app.config.from_object(ProductionConfig)
     else:
         app.config.from_object(DevelopmentConfig)
+    
+    # Configure Swagger/OpenAPI
+    swagger_template = {
+        "swagger": "2.0",
+        "info": {
+            "title": "Alert Service API",
+            "description": "Microservice for managing cryptocurrency price alerts",
+            "version": "1.0.0"
+        },
+        "securityDefinitions": {
+            "BearerAuth": {
+                "type": "apiKey",
+                "name": "Authorization",
+                "in": "header",
+                "description": "JWT Bearer token for authentication. Format: Bearer <token>"
+            }
+        },
+        "security": [
+            {"BearerAuth": []}
+        ]
+    }
+    
+    swagger_config = {
+        "headers": [],
+        "specs": [
+            {
+                "endpoint": "apispec",
+                "route": "/apispec.json",
+                "rule_filter": lambda rule: True,
+                "model_filter": lambda tag: True,
+            }
+        ],
+        "static_url_path": "/flasgger_static",
+        "swagger_ui": True,
+        "specs_route": "/apidocs/"
+    }
+    
+    Swagger(app, template=swagger_template, config=swagger_config)
     
     # Initialize extensions
     db.init_app(app)
