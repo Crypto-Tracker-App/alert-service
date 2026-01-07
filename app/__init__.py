@@ -68,7 +68,7 @@ def create_app():
         # Start scheduler for daily price checks
         if not scheduler.running:
             from .services.alert_service import check_all_alerts
-            scheduler.add_job(check_all_alerts, 'cron', hour=0, minute=0, id='check_alerts_daily')
+            scheduler.add_job(check_all_alerts, 'cron', hour=0, minute=0, id='check_alerts_daily', args=[app])
             scheduler.start()
     
     return app

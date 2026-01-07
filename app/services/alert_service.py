@@ -31,21 +31,24 @@ def deactivate_alert(alert_id: str) -> bool:
         return True
     return False
 
-def check_all_alerts():
+def check_all_alerts(app):
     """
     Check all active alerts and trigger notifications if thresholds are met.
     This function is called by the scheduler once a day.
-    """
-    active_alerts = Alert.query.filter(Alert.is_active == True).all()
     
-    for alert in active_alerts:
-        current_price = get_coin_price(alert.coin_id)
+    Args:
+        app: Flask application instance
+    """
+    with app.app_context():
+        active_alerts = Alert.query.filter(Alert.is_active == True).all()
         
-        if current_price is not None and current_price >= alert.threshold_price:
-            trigger_alert_push_notification(
-                user_id=alert.user_id,
-                coin_id=alert.coin_id,
-                current_price=current_price,
-                threshold_price=alert.threshold_price
-            )
-
+        for alert in active_alerts:
+            current_price = get_coin_price(alert.coin_id)
+            
+            if current_price is not None and current_price >= alert.threshold_price:
+                trigger_alert_push_notification(
+                    user_id=alert.user_id,
+                    coin_id=alert.coin_id,
+                    current_price=current_price,
+                    threshold_price=alert.threshold_price
+                )
