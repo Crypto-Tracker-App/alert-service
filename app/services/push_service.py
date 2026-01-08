@@ -60,31 +60,8 @@ def send_push_notification(user_id: str, title: str, body: str, data: dict = Non
     
     return success
 
-def emit_websocket_alert(user_id: str, coin_id: str, current_price: float, threshold_price: float) -> bool:
-    """Emit a real-time WebSocket notification to connected clients."""
-    try:
-        from app import socketio
-        socketio.emit(
-            'alert_triggered',
-            {
-                'coin_id': coin_id,
-                'current_price': current_price,
-                'threshold_price': threshold_price,
-                'timestamp': __import__('datetime').datetime.utcnow().isoformat()
-            },
-            room=f'user_{user_id}'
-        )
-        return True
-    except Exception as e:
-        print(f"Failed to emit WebSocket alert: {e}")
-        return False
-
 def trigger_alert_push_notification(user_id: str, coin_id: str, current_price: float, threshold_price: float) -> bool:
-    """Trigger both push notification and WebSocket notification when alert threshold is met."""
-    # Emit real-time WebSocket notification
-    emit_websocket_alert(user_id, coin_id, current_price, threshold_price)
-    
-    # Also send push notification
+    """Trigger a push notification when an alert threshold is met."""
     return send_push_notification(
         user_id=user_id,
         title="Price Alert Triggered!",
