@@ -32,20 +32,33 @@ def check_alert_and_notify(alert: Alert, user_email: str = None) -> bool:
         bool: True if notification was triggered, False otherwise
     """
     if not user_email:
+        print(f"check_alert_and_notify: No user email provided for alert {alert.id}")
         return False
-        
-    current_price = get_coin_price(alert.coin_id)
     
-    if current_price is not None and current_price >= alert.threshold_price:
-        return trigger_alert_email(
-            user_id=alert.user_id,
-            user_email=user_email,
-            coin_id=alert.coin_id,
-            current_price=current_price,
-            threshold_price=alert.threshold_price,
-            alert_id=alert.id
-        )
-    return False
+    try:
+        current_price = get_coin_price(alert.coin_id)
+        print(f"check_alert_and_notify: Got price for {alert.coin_id}: {current_price}")
+        
+        if current_price is None:
+            print(f"check_alert_and_notify: Could not fetch price for {alert.coin_id}")
+            return False
+        
+        if current_price >= alert.threshold_price:
+            print(f"check_alert_and_notify: Alert threshold met! {current_price} >= {alert.threshold_price}")
+            return trigger_alert_email(
+                user_id=alert.user_id,
+                user_email=user_email,
+                coin_id=alert.coin_id,
+                current_price=current_price,
+                threshold_price=alert.threshold_price,
+                alert_id=alert.id
+            )
+        else:
+            print(f"check_alert_and_notify: Threshold not met. {current_price} < {alert.threshold_price}")
+        return False
+    except Exception as e:
+        print(f"check_alert_and_notify: Error checking alert {alert.id}: {e}")
+        return False
 
 def trigger_alert_email(user_id: str, user_email: str, coin_id: str, 
                         current_price: float, threshold_price: float, 

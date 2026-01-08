@@ -114,7 +114,12 @@ def set_alert():
         
         # Check if alert threshold is already met and trigger notification immediately
         from app.services.alert_service import check_alert_and_notify
-        check_alert_and_notify(alert, user_email)
+        try:
+            notification_sent = check_alert_and_notify(alert, user_email)
+            print(f"Immediate alert check for alert {alert.id}: notification_sent={notification_sent}")
+        except Exception as e:
+            print(f"Error checking alert immediately: {e}")
+            # Don't fail the entire request if immediate check fails
         
         return jsonify({
             "id": alert.id,
