@@ -1,9 +1,12 @@
 from flask import Flask
+from flask_socketio import SocketIO
 from os import getenv
 from flasgger import Swagger
 
 from .config import DevelopmentConfig, ProductionConfig
 from .extensions import db, scheduler
+
+socketio = SocketIO(cors_allowed_origins="*", async_mode='threading')
 
 
 def create_app():
@@ -56,10 +59,14 @@ def create_app():
     
     # Initialize extensions
     db.init_app(app)
+    socketio.init_app(app)
     
     # Register blueprints
     from .api import alerts_blueprint
     app.register_blueprint(alerts_blueprint, url_prefix='/api')
+    
+    # Register WebSocket events
+    from .api import websocket_events
     
     # Create tables
     with app.app_context():
