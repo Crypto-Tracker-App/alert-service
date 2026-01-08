@@ -1,5 +1,5 @@
 from flask import Blueprint, request, jsonify, g
-from app.services.alert_service import create_alert, get_user_alerts, deactivate_alert, get_triggered_alerts
+from app.services.alert_service import create_alert, get_user_alerts, deactivate_alert
 from app.services.push_service import subscribe_to_push
 from app.middleware.auth_middleware import require_auth
 
@@ -166,57 +166,6 @@ def get_alerts():
                     "created_at": alert.created_at.isoformat()
                 }
                 for alert in alerts
-            ]
-        }), 200
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
-
-@alerts_blueprint.route('/alerts/triggered', methods=['GET'])
-@require_auth
-def get_recent_triggered_alerts():
-    """
-    Retrieve recently triggered alerts for the current user (last 5 minutes).
-    ---
-    tags:
-      - Alerts
-    security:
-      - BearerAuth: []
-    responses:
-      200:
-        description: Successfully retrieved triggered alerts
-        schema:
-          type: object
-          properties:
-            alerts:
-              type: array
-              items:
-                type: object
-                properties:
-                  id:
-                    type: string
-                  coin_id:
-                    type: string
-                  threshold_price:
-                    type: number
-                  triggered_at:
-                    type: string
-                    format: date-time
-      500:
-        description: Internal server error
-    """
-    try:
-        user_id = g.current_user['user_id']
-        triggered_alerts = get_triggered_alerts(user_id)
-        
-        return jsonify({
-            "alerts": [
-                {
-                    "id": alert.id,
-                    "coin_id": alert.coin_id,
-                    "threshold_price": alert.threshold_price,
-                    "triggered_at": alert.triggered_at.isoformat() if alert.triggered_at else None
-                }
-                for alert in triggered_alerts
             ]
         }), 200
     except Exception as e:
