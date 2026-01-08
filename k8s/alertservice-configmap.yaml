@@ -11,3 +11,4 @@ data:
   POSTGRES_USER: "alert_user"
   POSTGRES_DB: "crypto_alerts"
   PORT: "5000"
+  VAPID_EMAIL: "admin@cryptotracker.com"
