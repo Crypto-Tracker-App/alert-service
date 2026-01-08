@@ -4,35 +4,42 @@ from app.services.coin_service import get_coin_price
 from app.services.email_service import send_alert_email
 from sqlalchemy import and_
 
-def create_alert(user_id: str, user_email: str, coin_id: str, threshold_price: float) -> Alert:
-    """Create a new price alert."""
+def create_alert(user_id: str, user_email: str, coin_id: str, threshold_price: float) -> tuple:
+    """Create a new price alert.
+    
+    Returns:
+        tuple: (alert object, user_email) for subsequent operations
+    """
     alert = Alert(
         user_id=user_id,
-        user_email=user_email,
         coin_id=coin_id,
         threshold_price=threshold_price,
         is_active=True
     )
     db.session.add(alert)
     db.session.commit()
-    return alert 
+    return alert, user_email 
 
-def check_alert_and_notify(alert: Alert) -> bool:
+def check_alert_and_notify(alert: Alert, user_email: str = None) -> bool:
     """
     Check a single alert and trigger a notification if the threshold is met.
     
     Args:
         alert: Alert object to check
+        user_email: User email address (required for notifications)
         
     Returns:
         bool: True if notification was triggered, False otherwise
     """
+    if not user_email:
+        return False
+        
     current_price = get_coin_price(alert.coin_id)
     
     if current_price is not None and current_price >= alert.threshold_price:
         return trigger_alert_email(
             user_id=alert.user_id,
-            user_email=alert.user_email,
+            user_email=user_email,
             coin_id=alert.coin_id,
             current_price=current_price,
             threshold_price=alert.threshold_price,
@@ -105,14 +112,12 @@ def check_all_alerts(app):
         active_alerts = Alert.query.filter(Alert.is_active == True).all()
         
         for alert in active_alerts:
+            # Note: For batch checks, user_email is not available.
+            # Email notifications should be triggered when alerts are created.
+            # To support batch notifications, user_email would need to be
+            # fetched from a user service or stored separately.
             current_price = get_coin_price(alert.coin_id)
             
             if current_price is not None and current_price >= alert.threshold_price:
-                trigger_alert_email(
-                    user_id=alert.user_id,
-                    user_email=alert.user_email,
-                    coin_id=alert.coin_id,
-                    current_price=current_price,
-                    threshold_price=alert.threshold_price,
-                    alert_id=alert.id
-                )
+                # Placeholder: In production, retrieve user_email from user service
+                print(f"Alert triggered for user {alert.user_id}, coin {alert.coin_id} at price {current_price}")

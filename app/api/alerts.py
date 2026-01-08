@@ -128,11 +128,11 @@ def set_alert():
         if not user_email:
             return jsonify({"error": "Could not retrieve user email from user-service"}), 400
         
-        alert = create_alert(user_id, user_email, coin_id, threshold_price)
+        alert, _ = create_alert(user_id, user_email, coin_id, threshold_price)
         
         # Check if alert threshold is already met and trigger notification immediately
         from app.services.alert_service import check_alert_and_notify
-        check_alert_and_notify(alert)
+        check_alert_and_notify(alert, user_email)
         
         return jsonify({
             "id": alert.id,
