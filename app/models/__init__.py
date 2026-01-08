@@ -1,3 +1,3 @@
-from .models import Alert, PushSubscription
+from .models import Alert, AlertTriggerHistory
 
-__all__ = ['Alert', 'PushSubscription']
+__all__ = ['Alert', 'AlertTriggerHistory']
