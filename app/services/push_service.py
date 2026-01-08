@@ -1,7 +1,7 @@
 import json
 import logging
 from os import getenv
-from webpush import webpush, WebPushException
+from pywebpush import webpush, WebPushException
 from app.models import PushSubscription
 from app.extensions import db
 
