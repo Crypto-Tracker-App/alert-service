@@ -1,13 +1,14 @@
-from app.models import Alert
+from app.models import Alert, AlertTriggerHistory
 from app.extensions import db
 from app.services.coin_service import get_coin_price
-from app.services.push_service import trigger_alert_push_notification
+from app.services.email_service import send_alert_email
 from sqlalchemy import and_
 
-def create_alert(user_id: str, coin_id: str, threshold_price: float) -> Alert:
+def create_alert(user_id: str, user_email: str, coin_id: str, threshold_price: float) -> Alert:
     """Create a new price alert."""
     alert = Alert(
         user_id=user_id,
+        user_email=user_email,
         coin_id=coin_id,
         threshold_price=threshold_price,
         is_active=True
@@ -29,13 +30,53 @@ def check_alert_and_notify(alert: Alert) -> bool:
     current_price = get_coin_price(alert.coin_id)
     
     if current_price is not None and current_price >= alert.threshold_price:
-        return trigger_alert_push_notification(
+        return trigger_alert_email(
             user_id=alert.user_id,
+            user_email=alert.user_email,
             coin_id=alert.coin_id,
             current_price=current_price,
-            threshold_price=alert.threshold_price
+            threshold_price=alert.threshold_price,
+            alert_id=alert.id
         )
     return False
+
+def trigger_alert_email(user_id: str, user_email: str, coin_id: str, 
+                        current_price: float, threshold_price: float, 
+                        alert_id: str) -> bool:
+    """
+    Trigger an email notification when an alert threshold is met.
+    
+    Args:
+        user_id: The user's ID
+        user_email: The user's email address
+        coin_id: The cryptocurrency ID
+        current_price: The current price
+        threshold_price: The alert threshold price
+        alert_id: The alert ID for tracking
+    
+    Returns:
+        bool: True if email was sent successfully
+    """
+    email_sent = send_alert_email(
+        recipient_email=user_email,
+        coin_id=coin_id,
+        current_price=current_price,
+        threshold_price=threshold_price
+    )
+    
+    # Record this trigger in history
+    history = AlertTriggerHistory(
+        alert_id=alert_id,
+        user_id=user_id,
+        coin_id=coin_id,
+        current_price=current_price,
+        threshold_price=threshold_price,
+        email_sent=email_sent
+    )
+    db.session.add(history)
+    db.session.commit()
+    
+    return email_sent
 
 def get_user_alerts(user_id: str):
     """Get all active alerts for a user."""
@@ -54,8 +95,8 @@ def deactivate_alert(alert_id: str) -> bool:
 
 def check_all_alerts(app):
     """
-    Check all active alerts and trigger notifications if thresholds are met.
-    This function is called by the scheduler once a day.
+    Check all active alerts and trigger email notifications if thresholds are met.
+    This function is called by the scheduler.
     
     Args:
         app: Flask application instance
@@ -67,9 +108,11 @@ def check_all_alerts(app):
             current_price = get_coin_price(alert.coin_id)
             
             if current_price is not None and current_price >= alert.threshold_price:
-                trigger_alert_push_notification(
+                trigger_alert_email(
                     user_id=alert.user_id,
+                    user_email=alert.user_email,
                     coin_id=alert.coin_id,
                     current_price=current_price,
-                    threshold_price=alert.threshold_price
+                    threshold_price=alert.threshold_price,
+                    alert_id=alert.id
                 )

@@ -3,7 +3,7 @@ from os import getenv
 from flasgger import Swagger
 
 from .config import DevelopmentConfig, ProductionConfig
-from .extensions import db, scheduler
+from .extensions import db, mail, scheduler
 
 
 def create_app():
@@ -56,6 +56,7 @@ def create_app():
     
     # Initialize extensions
     db.init_app(app)
+    mail.init_app(app)
     
     # Register blueprints
     from .api import alerts_blueprint

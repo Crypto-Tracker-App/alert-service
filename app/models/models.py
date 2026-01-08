@@ -13,17 +13,22 @@ class Alert(db.Model):
     
     id = Column(String(36), primary_key=True, default=generate_unique_id)
     user_id = Column(String(36), nullable=False, index=True)
+    user_email = Column(String(255), nullable=False)
     coin_id = Column(String(100), nullable=False, index=True)
     threshold_price = Column(Float, nullable=False)
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime, default=datetime.now(timezone.utc))
     updated_at = Column(DateTime, default=datetime.now(timezone.utc), onupdate=datetime.now(timezone.utc))
 
-class PushSubscription(db.Model):
-    __tablename__ = 'push_subscriptions'
+
+class AlertTriggerHistory(db.Model):
+    __tablename__ = 'alert_trigger_history'
     
     id = Column(String(36), primary_key=True, default=generate_unique_id)
+    alert_id = Column(String(36), nullable=False, index=True)
     user_id = Column(String(36), nullable=False, index=True)
-    subscription_data = Column(String, nullable=False)  # JSON string containing endpoint, p256dh, auth
-    is_active = Column(Boolean, default=True)
-    created_at = Column(DateTime, default=datetime.now(timezone.utc))
+    coin_id = Column(String(100), nullable=False)
+    current_price = Column(Float, nullable=False)
+    threshold_price = Column(Float, nullable=False)
+    email_sent = Column(Boolean, default=True)
+    triggered_at = Column(DateTime, default=datetime.now(timezone.utc))

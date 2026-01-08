@@ -24,6 +24,13 @@ class Config:
     AUTH_SERVICE_URL = os.environ.get("AUTH_SERVICE_URL", "http://user-service:5000")
     FRONTEND_URL = os.environ.get("FRONTEND_URL")
 
+    # Email Configuration (SMTP)
+    MAIL_SERVER = os.environ.get("MAIL_SERVER")
+    MAIL_PORT = int(os.environ.get("MAIL_PORT", 587))
+    MAIL_USE_TLS = os.environ.get("MAIL_USE_TLS", "True") == "True"
+    MAIL_USERNAME = os.environ.get("MAIL_USERNAME")
+    MAIL_PASSWORD = os.environ.get("MAIL_PASSWORD")
+
 class DevelopmentConfig(Config):
     DEBUG = True
 

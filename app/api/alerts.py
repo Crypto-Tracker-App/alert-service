@@ -1,9 +1,44 @@
-from flask import Blueprint, request, jsonify, g
+from flask import Blueprint, request, jsonify, g, current_app
 from app.services.alert_service import create_alert, get_user_alerts, deactivate_alert
-from app.services.push_service import subscribe_to_push
 from app.middleware.auth_middleware import require_auth
+import requests
 
 alerts_blueprint = Blueprint('alerts', __name__)
+
+def get_user_email_from_current_user() -> str:
+    """
+    Fetch user email from user-service /current-user endpoint.
+    The user_id returned equals the user's email address.
+    
+    Returns:
+        str: The user's email address (from user_id field)
+    """
+    try:
+        auth_header = request.headers.get('Authorization', '')
+        if not auth_header:
+            print("No Authorization header found")
+            return ''
+        
+        user_service_url = 'http://20.251.246.218/user-service/current-user'
+        response = requests.get(
+            user_service_url,
+            headers={'Authorization': auth_header},
+            timeout=5
+        )
+        
+        if response.status_code == 200:
+            data = response.json()
+            user_info = data.get('user', {})
+            user_id = user_info.get('id', '')
+            if user_id:
+                return user_id  # user_id is the email address
+            return ''
+        else:
+            print(f"Failed to fetch current user: {response.status_code}")
+            return ''
+    except Exception as e:
+        print(f"Failed to fetch user from user-service: {e}")
+        return ''
 
 @alerts_blueprint.route('/set-alert', methods=['POST'])
 @require_auth
@@ -88,7 +123,12 @@ def set_alert():
         # Get user_id from auth middleware
         user_id = g.current_user['user_id']
         
-        alert = create_alert(user_id, coin_id, threshold_price)
+        # Get user email from user-service current-user endpoint
+        user_email = get_user_email_from_current_user()
+        if not user_email:
+            return jsonify({"error": "Could not retrieve user email from user-service"}), 400
+        
+        alert = create_alert(user_id, user_email, coin_id, threshold_price)
         
         # Check if alert threshold is already met and trigger notification immediately
         from app.services.alert_service import check_alert_and_notify
@@ -222,22 +262,6 @@ def delete_alert(alert_id):
         return jsonify({"message": "Alert deactivated successfully"}), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 500
-@alerts_blueprint.route('/subscribe-notifications', methods=['POST'])
-@require_auth
-def subscribe_notifications():
-    """Register a push notification subscription."""
-    try:
-        data = request.get_json()
-        
-        if not data or 'subscription' not in data:
-            return jsonify({"error": "Missing subscription data"}), 400
-        
-        user_id = g.current_user['user_id']
-        subscription = subscribe_to_push(user_id, data['subscription'])
-        
-        return jsonify({"message": "Subscription registered successfully"}), 201
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
 
 @alerts_blueprint.route('/check-alerts', methods=['POST'])
 def check_alerts():
@@ -246,7 +270,6 @@ def check_alerts():
     No authentication required as it's called from pricing-service.
     """
     try:
-        from flask import current_app
         from app.services.alert_service import check_all_alerts
         check_all_alerts(current_app)
         return jsonify({"message": "Alert check completed"}), 200
