@@ -8,13 +8,13 @@ alerts_blueprint = Blueprint('alerts', __name__)
 def get_user_email_from_current_user() -> str:
     """
     Get user email from the current user context.
-    The user_id in the auth context IS the user's email address.
+    The username in the auth context IS the user's email address.
     
     Returns:
-        str: The user's email address (which is stored as user_id)
+        str: The user's email address (which is stored as username)
     """
     try:
-        user_email = g.current_user.get('user_id', '')
+        user_email = g.current_user.get('username', '')
         if user_email:
             return user_email
         return ''
