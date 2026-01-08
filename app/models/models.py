@@ -16,6 +16,7 @@ class Alert(db.Model):
     coin_id = Column(String(100), nullable=False, index=True)
     threshold_price = Column(Float, nullable=False)
     is_active = Column(Boolean, default=True)
+    triggered_at = Column(DateTime, nullable=True)  # Track when alert was last triggered
     created_at = Column(DateTime, default=datetime.now(timezone.utc))
     updated_at = Column(DateTime, default=datetime.now(timezone.utc), onupdate=datetime.now(timezone.utc))
 
