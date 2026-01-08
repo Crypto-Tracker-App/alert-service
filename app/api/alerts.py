@@ -90,6 +90,10 @@ def set_alert():
         
         alert = create_alert(user_id, coin_id, threshold_price)
         
+        # Check if alert threshold is already met and trigger notification immediately
+        from app.services.alert_service import check_alert_and_notify
+        check_alert_and_notify(alert)
+        
         return jsonify({
             "id": alert.id,
             "coin_id": alert.coin_id,
@@ -242,8 +246,9 @@ def check_alerts():
     No authentication required as it's called from pricing-service.
     """
     try:
+        from flask import current_app
         from app.services.alert_service import check_all_alerts
-        check_all_alerts()
+        check_all_alerts(current_app)
         return jsonify({"message": "Alert check completed"}), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 500

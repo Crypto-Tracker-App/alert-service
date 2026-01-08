@@ -14,7 +14,28 @@ def create_alert(user_id: str, coin_id: str, threshold_price: float) -> Alert:
     )
     db.session.add(alert)
     db.session.commit()
-    return alert
+    return alert 
+
+def check_alert_and_notify(alert: Alert) -> bool:
+    """
+    Check a single alert and trigger a notification if the threshold is met.
+    
+    Args:
+        alert: Alert object to check
+        
+    Returns:
+        bool: True if notification was triggered, False otherwise
+    """
+    current_price = get_coin_price(alert.coin_id)
+    
+    if current_price is not None and current_price >= alert.threshold_price:
+        return trigger_alert_push_notification(
+            user_id=alert.user_id,
+            coin_id=alert.coin_id,
+            current_price=current_price,
+            threshold_price=alert.threshold_price
+        )
+    return False
 
 def get_user_alerts(user_id: str):
     """Get all active alerts for a user."""
