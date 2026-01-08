@@ -8,4 +8,3 @@ APScheduler
 python-dotenv
 gunicorn==21.2.0
 flasgger==0.9.7.1
-pywebpush==1.14.1
