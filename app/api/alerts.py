@@ -7,37 +7,19 @@ alerts_blueprint = Blueprint('alerts', __name__)
 
 def get_user_email_from_current_user() -> str:
     """
-    Fetch user email from user-service /current-user endpoint.
-    The user_id returned equals the user's email address.
+    Get user email from the current user context.
+    The user_id in the auth context IS the user's email address.
     
     Returns:
-        str: The user's email address (from user_id field)
+        str: The user's email address (which is stored as user_id)
     """
     try:
-        auth_header = request.headers.get('Authorization', '')
-        if not auth_header:
-            print("No Authorization header found")
-            return ''
-        
-        user_service_url = 'http://20.251.246.218/user-service/current-user'
-        response = requests.get(
-            user_service_url,
-            headers={'Authorization': auth_header},
-            timeout=5
-        )
-        
-        if response.status_code == 200:
-            data = response.json()
-            user_info = data.get('user', {})
-            user_id = user_info.get('id', '')
-            if user_id:
-                return user_id  # user_id is the email address
-            return ''
-        else:
-            print(f"Failed to fetch current user: {response.status_code}")
-            return ''
+        user_email = g.current_user.get('user_id', '')
+        if user_email:
+            return user_email
+        return ''
     except Exception as e:
-        print(f"Failed to fetch user from user-service: {e}")
+        print(f"Failed to get user email from context: {e}")
         return ''
 
 @alerts_blueprint.route('/set-alert', methods=['POST'])
