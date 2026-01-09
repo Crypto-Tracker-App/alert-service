@@ -1,30 +1,10 @@
 from flask import Blueprint, request, jsonify, g, current_app
 from app.services.alert_service import create_alert, get_user_alerts, deactivate_alert
 from app.middleware.auth_middleware import require_auth
-import requests
 import logging
 
 alerts_blueprint = Blueprint('alerts', __name__)
 logger = logging.getLogger(__name__)
-
-def get_user_email_from_current_user() -> str:
-    """
-    Get user email from the current user context.
-    The username in the auth context IS the user's email address.
-    
-    Returns:
-        str: The user's email address (which is stored as username)
-    """
-    try:
-        user_email = g.current_user.get('username', '')
-        if user_email:
-            logger.debug(f"[ALERT] User email retrieved: {user_email}")
-            return user_email
-        logger.warning("[ALERT] No user email found in current user context")
-        return ''
-    except Exception as e:
-        logger.error(f"[ALERT] Failed to get user email from context: {e}")
-        return ''
 
 @alerts_blueprint.route('/set-alert', methods=['POST'])
 @require_auth
@@ -114,7 +94,7 @@ def set_alert():
         logger.debug(f"[ALERT] User ID: {user_id}")
         
         # Get user email from user-service current-user endpoint
-        user_email = get_user_email_from_current_user()
+        user_email = user_email = g.current_user.get('username', '')
         if not user_email:
             logger.error(f"[ALERT] Could not retrieve user email for user {user_id}")
             return jsonify({"error": "Could not retrieve user email from user-service"}), 400
@@ -271,7 +251,26 @@ def delete_alert(alert_id):
 def check_alerts():
     """
     Internal endpoint called by pricing-service after market data updates.
-    No authentication required as it's called from pricing-service.
+    Performs batch check on all active alerts and triggers notifications if thresholds are met.
+    ---
+    tags:
+      - Alerts
+    responses:
+      200:
+        description: Alert check completed successfully
+        schema:
+          type: object
+          properties:
+            message:
+              type: string
+              example: "Alert check completed"
+      500:
+        description: Internal server error
+        schema:
+          type: object
+          properties:
+            error:
+              type: string
     """
     try:
         logger.info("[ALERT] Starting batch alert check")

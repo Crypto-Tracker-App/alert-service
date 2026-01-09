@@ -129,16 +129,16 @@ def get_alert_email_template(alert_data: dict) -> str:
                 <div class="alert-details">
                     <div class="detail-item">
                         <div class="detail-label">Current Price</div>
-                        <div class="detail-value price-highlight">${{ current_price | round(2) }}</div>
+                        <div class="detail-value price-highlight">€{{ current_price | round(2) }}</div>
                     </div>
                     <div class="detail-item">
                         <div class="detail-label">Alert Threshold</div>
-                        <div class="detail-value">${{ threshold_price | round(2) }}</div>
+                        <div class="detail-value">€{{ threshold_price | round(2) }}</div>
                     </div>
                 </div>
                 
                 <p style="background-color: #fef3c7; border-left: 4px solid #f59e0b; padding: 15px; border-radius: 4px; margin: 20px 0; font-size: 14px;">
-                    <strong>📌 Note:</strong> Your alert triggered when the price reached <strong>${{ current_price | round(2) }}</strong>, which is at or above your threshold of <strong>${{ threshold_price | round(2) }}</strong>.
+                    <strong>📌 Note:</strong> Your alert triggered when the price reached <strong>€{{ current_price | round(2) }}</strong>, which is at or above your threshold of <strong>€{{ threshold_price | round(2) }}</strong>.
                 </p>
                 
                 <p style="text-align: center; margin-top: 30px;">
@@ -197,7 +197,7 @@ def send_alert_email(recipient_email: str, coin_id: str, current_price: float,
             logger.warning("[EMAIL] MAIL_SERVER not configured - email sending is disabled")
             return False
         
-        logger.debug(f"[EMAIL] Preparing alert email - To: {recipient_email}, Coin: {coin_id}, Price: ${current_price}, Threshold: ${threshold_price}")
+        logger.debug(f"[EMAIL] Preparing alert email - To: {recipient_email}, Coin: {coin_id}, Price: €{current_price}, Threshold: €{threshold_price}")
         
         # Get the template
         template = get_alert_email_template({
@@ -212,7 +212,7 @@ def send_alert_email(recipient_email: str, coin_id: str, current_price: float,
             coin_name=coin_id,
             current_price=current_price,
             threshold_price=threshold_price,
-            portfolio_url=portfolio_url or "#",
+            portfolio_url=portfolio_url or "http://20.251.246.218/portfolio",
             unsubscribe_url=unsubscribe_url or "#",
             timestamp=datetime.utcnow().strftime("%B %d, %Y at %H:%M UTC")
         )
@@ -220,7 +220,7 @@ def send_alert_email(recipient_email: str, coin_id: str, current_price: float,
         # Create the email message with sender
         mail_username = app_instance.config.get('MAIL_USERNAME', 'noreply@cryptotracker.com')
         msg = Message(
-            subject=f"🚨 {coin_id.upper()} Price Alert: ${current_price:.2f}",
+            subject=f"🚨 {coin_id.upper()} Price Alert: €{current_price:.2f}",
             recipients=[recipient_email],
             html=html_content,
             sender=mail_username
@@ -237,51 +237,4 @@ def send_alert_email(recipient_email: str, coin_id: str, current_price: float,
         
     except Exception as e:
         logger.error(f"[EMAIL] Failed to send alert email to {recipient_email}: {e}", exc_info=True)
-        return False
-
-
-def send_test_email(recipient_email: str, app=None) -> bool:
-    """
-    Send a test email to verify SMTP configuration.
-    
-    Args:
-        recipient_email: Email address to send test email to
-        app: Flask app instance for context (optional, will use current_app if not provided)
-    
-    Returns:
-        bool: True if email was sent successfully, False otherwise
-    """
-    try:
-        from flask import current_app
-        
-        # Get the app instance for context
-        app_instance = app or current_app
-        
-        # Ensure we're in an app context
-        if not app_instance:
-            logger.error("[EMAIL] No Flask app context available for sending email")
-            return False
-        
-        # Check if SMTP configuration is available
-        if not app_instance.config.get('MAIL_SERVER'):
-            logger.warning("[EMAIL] MAIL_SERVER not configured - email sending is disabled")
-            return False
-        
-        logger.info(f"[EMAIL] Sending test email to {recipient_email}")
-        
-        mail_username = app_instance.config.get('MAIL_USERNAME', 'noreply@cryptotracker.com')
-        msg = Message(
-            subject="CryptoTracker - Test Email",
-            recipients=[recipient_email],
-            body="This is a test email to verify SMTP configuration is working correctly.",
-            sender=mail_username
-        )
-        
-        with app_instance.app_context():
-            mail.send(msg)
-        
-        logger.info(f"[EMAIL] Test email successfully sent to {recipient_email}")
-        return True
-    except Exception as e:
-        logger.error(f"[EMAIL] Failed to send test email to {recipient_email}: {e}", exc_info=True)
         return False
