@@ -7,11 +7,18 @@ from sqlalchemy import and_
 def create_alert(user_id: str, user_email: str, coin_id: str, threshold_price: float) -> tuple:
     """Create a new price alert.
     
+    Args:
+        user_id: The user's ID
+        user_email: The user's email address
+        coin_id: The cryptocurrency ID
+        threshold_price: The price threshold for the alert
+    
     Returns:
         tuple: (alert object, user_email) for subsequent operations
     """
     alert = Alert(
         user_id=user_id,
+        user_email=user_email,
         coin_id=coin_id,
         threshold_price=threshold_price,
         is_active=True
@@ -116,7 +123,7 @@ def deactivate_alert(alert_id: str) -> bool:
 def check_all_alerts(app):
     """
     Check all active alerts and trigger email notifications if thresholds are met.
-    This function is called by the scheduler.
+    This function is called by the pricing-service after market data updates.
     
     Args:
         app: Flask application instance
@@ -124,13 +131,37 @@ def check_all_alerts(app):
     with app.app_context():
         active_alerts = Alert.query.filter(Alert.is_active == True).all()
         
+        alerts_triggered = 0
         for alert in active_alerts:
-            # Note: For batch checks, user_email is not available.
-            # Email notifications should be triggered when alerts are created.
-            # To support batch notifications, user_email would need to be
-            # fetched from a user service or stored separately.
-            current_price = get_coin_price(alert.coin_id)
-            
-            if current_price is not None and current_price >= alert.threshold_price:
-                # Placeholder: In production, retrieve user_email from user service
-                print(f"Alert triggered for user {alert.user_id}, coin {alert.coin_id} at price {current_price}")
+            try:
+                current_price = get_coin_price(alert.coin_id)
+                
+                if current_price is None:
+                    print(f"check_all_alerts: Could not fetch price for {alert.coin_id}")
+                    continue
+                
+                # Check if threshold is met
+                if current_price >= alert.threshold_price:
+                    print(f"check_all_alerts: Alert triggered for user {alert.user_id}, coin {alert.coin_id} at price {current_price}")
+                    
+                    # Trigger the email notification
+                    email_sent = trigger_alert_email(
+                        user_id=alert.user_id,
+                        user_email=alert.user_email,
+                        coin_id=alert.coin_id,
+                        current_price=current_price,
+                        threshold_price=alert.threshold_price,
+                        alert_id=alert.id
+                    )
+                    
+                    if email_sent:
+                        alerts_triggered += 1
+                        print(f"check_all_alerts: Email sent successfully for alert {alert.id}")
+                    else:
+                        print(f"check_all_alerts: Failed to send email for alert {alert.id}")
+                        
+            except Exception as e:
+                print(f"check_all_alerts: Error checking alert {alert.id}: {e}")
+        
+        print(f"check_all_alerts: Completed. {alerts_triggered} alert(s) triggered.")
+

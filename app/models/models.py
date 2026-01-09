@@ -13,6 +13,7 @@ class Alert(db.Model):
     
     id = Column(String(36), primary_key=True, default=generate_unique_id)
     user_id = Column(String(36), nullable=False, index=True)
+    user_email = Column(String(255), nullable=False, index=True)
     coin_id = Column(String(100), nullable=False, index=True)
     threshold_price = Column(Float, nullable=False)
     is_active = Column(Boolean, default=True)
