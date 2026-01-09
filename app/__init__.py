@@ -34,6 +34,12 @@ def create_app():
         },
         "security": [
             {"BearerAuth": []}
+        ],
+        "tags": [
+            {
+                "name": "Health",
+                "description": "Health and readiness endpoints"
+            }
         ]
     }
     
@@ -60,6 +66,8 @@ def create_app():
     
     # Register blueprints
     from .api import alerts_blueprint
+    from .api.health import health_bp
+    app.register_blueprint(health_bp)
     app.register_blueprint(alerts_blueprint, url_prefix='/api')
     
     # Create tables
