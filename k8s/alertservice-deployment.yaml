@@ -56,6 +56,11 @@ spec:
             configMapKeyRef:
               name: alertservice-config
               key: FRONTEND_URL
+        - name: PRICING_SERVICE_URL
+          valueFrom:
+            configMapKeyRef:
+              name: alertservice-config
+              key: PRICING_SERVICE_URL
         - name: DB_HOST
           valueFrom:
             configMapKeyRef:
