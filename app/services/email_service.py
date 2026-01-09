@@ -217,11 +217,13 @@ def send_alert_email(recipient_email: str, coin_id: str, current_price: float,
             timestamp=datetime.utcnow().strftime("%B %d, %Y at %H:%M UTC")
         )
         
-        # Create the email message
+        # Create the email message with sender
+        mail_username = app_instance.config.get('MAIL_USERNAME', 'noreply@cryptotracker.com')
         msg = Message(
             subject=f"🚨 {coin_id.upper()} Price Alert: ${current_price:.2f}",
             recipients=[recipient_email],
-            html=html_content
+            html=html_content,
+            sender=mail_username
         )
         
         logger.debug(f"[EMAIL] Sending message to {recipient_email}")
@@ -267,10 +269,12 @@ def send_test_email(recipient_email: str, app=None) -> bool:
         
         logger.info(f"[EMAIL] Sending test email to {recipient_email}")
         
+        mail_username = app_instance.config.get('MAIL_USERNAME', 'noreply@cryptotracker.com')
         msg = Message(
             subject="CryptoTracker - Test Email",
             recipients=[recipient_email],
-            body="This is a test email to verify SMTP configuration is working correctly."
+            body="This is a test email to verify SMTP configuration is working correctly.",
+            sender=mail_username
         )
         
         with app_instance.app_context():
