@@ -8,10 +8,13 @@ logger = logging.getLogger(__name__)
 def get_pricing_service_url():
     """Get pricing service URL from config or use default."""
     try:
-        return current_app.config.get("PRICING_SERVICE_URL", "http://pricing-service:12000")
+        url = current_app.config.get("PRICING_SERVICE_URL", "http://pricing-service:12000")
+        logger.debug(f"[COIN] Using PRICING_SERVICE_URL from config: {url}")
+        return url
     except RuntimeError:
-        # Outside of app context, use default
-        return "http://pricing-service:5000"
+        url = "http://pricing-service:12000"
+        logger.debug(f"[COIN] Using default PRICING_SERVICE_URL: {url}")
+        return url
 
 def get_coin_price(coin_id: str) -> Optional[float]:
     """
@@ -26,7 +29,7 @@ def get_coin_price(coin_id: str) -> Optional[float]:
     try:
         pricing_service_url = get_pricing_service_url()
         url = f"{pricing_service_url}/coin/{coin_id}"
-        logger.debug(f"[COIN] Fetching price from {url}")
+        logger.info(f"[COIN] Fetching price from {url} (timeout: 5s)")
         response = requests.get(url, timeout=5)
         
         # Check for HTTP errors first
@@ -63,11 +66,12 @@ def get_coin_price(coin_id: str) -> Optional[float]:
             return None
             
     except requests.exceptions.Timeout:
-        logger.error(f"[COIN] Timeout fetching price for {coin_id}")
-        return None
-    except requests.exceptions.ConnectionError:
         pricing_service_url = get_pricing_service_url()
-        logger.error(f"[COIN] Connection error fetching price for {coin_id} from {pricing_service_url}")
+        logger.error(f"[COIN] Timeout fetching price for {coin_id} from {pricing_service_url} (timeout: 5s)")
+        return None
+    except requests.exceptions.ConnectionError as e:
+        pricing_service_url = get_pricing_service_url()
+        logger.error(f"[COIN] Connection error fetching price for {coin_id} from {pricing_service_url}: {str(e)}")
         return None
     except Exception as e:
         logger.error(f"[COIN] Error fetching price for {coin_id}: {str(e)}", exc_info=True)
