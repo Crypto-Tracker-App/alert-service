@@ -23,7 +23,12 @@ def get_coin_price(coin_id: str) -> Optional[float]:
         
         # Check for HTTP errors first
         if response.status_code != 200:
-            logger.warning(f"[COIN] HTTP {response.status_code} fetching price for {coin_id}")
+            logger.warning(f"[COIN] HTTP {response.status_code} fetching price for {coin_id}. Response: {response.text[:200]}")
+            return None
+        
+        # Check if response body is empty
+        if not response.text or not response.text.strip():
+            logger.error(f"[COIN] Empty response body for {coin_id} from {url}")
             return None
         
         # Try to parse JSON response
@@ -31,7 +36,7 @@ def get_coin_price(coin_id: str) -> Optional[float]:
             data = response.json()
         except Exception as json_error:
             logger.error(f"[COIN] Failed to parse JSON response for {coin_id}: {str(json_error)}")
-            logger.debug(f"[COIN] Response text: {response.text}")
+            logger.error(f"[COIN] Response text: {response.text[:500]}")
             return None
         
         # Check if response has the expected structure
