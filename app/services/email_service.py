@@ -177,21 +177,15 @@ def send_alert_email(recipient_email: str, coin_id: str, current_price: float,
     Returns:
         bool: True if email was sent successfully, False otherwise
     """
-    print(f"send_alert_email: Starting email send for {recipient_email}")
-    print(f"  coin_id={coin_id}, current_price={current_price}, threshold_price={threshold_price}")
-    
     try:
         # Get the template
-        print(f"send_alert_email: Getting email template...")
         template = get_alert_email_template({
             'coin_id': coin_id,
             'current_price': current_price,
             'threshold_price': threshold_price
         })
-        print(f"send_alert_email: Template retrieved successfully")
         
         # Render the template with context
-        print(f"send_alert_email: Rendering template...")
         html_content = render_template_string(
             template,
             coin_name=coin_id,
@@ -201,28 +195,20 @@ def send_alert_email(recipient_email: str, coin_id: str, current_price: float,
             unsubscribe_url=unsubscribe_url or "#",
             timestamp=datetime.utcnow().strftime("%B %d, %Y at %H:%M UTC")
         )
-        print(f"send_alert_email: Template rendered successfully (length: {len(html_content)} chars)")
         
         # Create the email message
-        print(f"send_alert_email: Creating Message object...")
         msg = Message(
             subject=f"🚨 {coin_id.upper()} Price Alert: ${current_price:.2f}",
             recipients=[recipient_email],
             html=html_content
         )
-        print(f"send_alert_email: Message created. Calling mail.send()...")
         
         # Send the email
         mail.send(msg)
-        print(f"send_alert_email: Email sent successfully to {recipient_email}")
         return True
         
     except Exception as e:
-        print(f"send_alert_email: FAILED to send alert email to {recipient_email}")
-        print(f"  Exception type: {type(e).__name__}")
-        print(f"  Exception message: {e}")
-        import traceback
-        traceback.print_exc()
+        print(f"Failed to send alert email to {recipient_email}: {e}")
         return False
 
 

@@ -20,7 +20,7 @@ def create_alert(user_id: str, user_email: str, coin_id: str, threshold_price: f
     db.session.commit()
     return alert, user_email 
 
-def check_alert_and_notify(alert: Alert, user_email: str = None) -> tuple:
+def check_alert_and_notify(alert: Alert, user_email: str = None) -> bool:
     """
     Check a single alert and trigger a notification if the threshold is met.
     
@@ -29,40 +29,23 @@ def check_alert_and_notify(alert: Alert, user_email: str = None) -> tuple:
         user_email: User email address (required for notifications)
         
     Returns:
-        tuple: (notification_sent: bool, debug_details: dict)
+        bool: True if notification was triggered, False otherwise
     """
-    debug_details = {
-        "user_email_provided": bool(user_email),
-        "coin_id": alert.coin_id,
-        "threshold_price": alert.threshold_price,
-        "current_price": None,
-        "price_fetch_successful": False,
-        "threshold_met": False,
-        "email_sent": False,
-        "error_message": None
-    }
-    
     if not user_email:
-        debug_details["error_message"] = "No user email provided for alert"
         print(f"check_alert_and_notify: No user email provided for alert {alert.id}")
-        return False, debug_details
+        return False
     
     try:
         current_price = get_coin_price(alert.coin_id)
-        debug_details["current_price"] = current_price
         print(f"check_alert_and_notify: Got price for {alert.coin_id}: {current_price}")
         
         if current_price is None:
-            debug_details["error_message"] = f"Could not fetch price for {alert.coin_id}"
             print(f"check_alert_and_notify: Could not fetch price for {alert.coin_id}")
-            return False, debug_details
-        
-        debug_details["price_fetch_successful"] = True
+            return False
         
         if current_price >= alert.threshold_price:
-            debug_details["threshold_met"] = True
             print(f"check_alert_and_notify: Alert threshold met! {current_price} >= {alert.threshold_price}")
-            email_sent = trigger_alert_email(
+            return trigger_alert_email(
                 user_id=alert.user_id,
                 user_email=user_email,
                 coin_id=alert.coin_id,
@@ -70,14 +53,10 @@ def check_alert_and_notify(alert: Alert, user_email: str = None) -> tuple:
                 threshold_price=alert.threshold_price,
                 alert_id=alert.id
             )
-            debug_details["email_sent"] = email_sent
-            return email_sent, debug_details
         else:
-            debug_details["error_message"] = f"Threshold not met. {current_price} < {alert.threshold_price}"
             print(f"check_alert_and_notify: Threshold not met. {current_price} < {alert.threshold_price}")
-        return False, debug_details
+        return False
     except Exception as e:
-        debug_details["error_message"] = f"Exception: {str(e)}"
         print(f"check_alert_and_notify: Error checking alert {alert.id}: {e}")
         return False
 

@@ -114,20 +114,10 @@ def set_alert():
         
         # Check if alert threshold is already met and trigger notification immediately
         from app.services.alert_service import check_alert_and_notify
-        debug_info = {
-            "email_check_attempted": True,
-            "email_triggered": False,
-            "email_error": None,
-            "price_check_details": {}
-        }
-        
         try:
-            notification_sent, debug_details = check_alert_and_notify(alert, user_email)
-            debug_info["email_triggered"] = notification_sent
-            debug_info["price_check_details"] = debug_details
+            notification_sent = check_alert_and_notify(alert, user_email)
             print(f"Immediate alert check for alert {alert.id}: notification_sent={notification_sent}")
         except Exception as e:
-            debug_info["email_error"] = str(e)
             print(f"Error checking alert immediately: {e}")
             # Don't fail the entire request if immediate check fails
         
@@ -136,8 +126,7 @@ def set_alert():
             "coin_id": alert.coin_id,
             "threshold_price": alert.threshold_price,
             "is_active": alert.is_active,
-            "created_at": alert.created_at.isoformat(),
-            "_debug": debug_info
+            "created_at": alert.created_at.isoformat()
         }), 201
     except ValueError as e:
         return jsonify({"error": f"Invalid value: {str(e)}"}), 400
