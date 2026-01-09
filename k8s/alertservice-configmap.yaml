@@ -5,6 +5,7 @@ metadata:
 data:
   FLASK_ENV: "production"
   FRONTEND_URL: "http://localhost:3000"
+  PRICING_SERVICE_URL: "http://pricing-service:5000"
   DB_HOST: "alert-service-db"
   DB_PORT: "5432"
   POSTGRES_PORT: "5432"

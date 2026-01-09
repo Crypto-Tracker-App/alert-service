@@ -1,10 +1,17 @@
 import requests
 from typing import Optional
 import logging
+from flask import current_app
 
 logger = logging.getLogger(__name__)
 
-PRICING_SERVICE_URL = "http://20.251.246.218/pricing-service"
+def get_pricing_service_url():
+    """Get pricing service URL from config or use default."""
+    try:
+        return current_app.config.get("PRICING_SERVICE_URL", "http://pricing-service:5000")
+    except RuntimeError:
+        # Outside of app context, use default
+        return "http://pricing-service:5000"
 
 def get_coin_price(coin_id: str) -> Optional[float]:
     """
@@ -17,7 +24,8 @@ def get_coin_price(coin_id: str) -> Optional[float]:
         The current price in USD or None if fetch fails
     """
     try:
-        url = f"{PRICING_SERVICE_URL}/coin/{coin_id}"
+        pricing_service_url = get_pricing_service_url()
+        url = f"{pricing_service_url}/coin/{coin_id}"
         logger.debug(f"[COIN] Fetching price from {url}")
         response = requests.get(url, timeout=5)
         
@@ -58,7 +66,8 @@ def get_coin_price(coin_id: str) -> Optional[float]:
         logger.error(f"[COIN] Timeout fetching price for {coin_id}")
         return None
     except requests.exceptions.ConnectionError:
-        logger.error(f"[COIN] Connection error fetching price for {coin_id} from {PRICING_SERVICE_URL}")
+        pricing_service_url = get_pricing_service_url()
+        logger.error(f"[COIN] Connection error fetching price for {coin_id} from {pricing_service_url}")
         return None
     except Exception as e:
         logger.error(f"[COIN] Error fetching price for {coin_id}: {str(e)}", exc_info=True)

@@ -22,6 +22,7 @@ class Config:
     JSON_MAX_CONTENT_LENGTH = 16 * 1024
 
     AUTH_SERVICE_URL = os.environ.get("AUTH_SERVICE_URL", "http://user-service:5000")
+    PRICING_SERVICE_URL = os.environ.get("PRICING_SERVICE_URL", "http://pricing-service:5000")
     FRONTEND_URL = os.environ.get("FRONTEND_URL")
 
     # Email Configuration (SMTP)
