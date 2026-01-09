@@ -69,7 +69,7 @@ def check_alert_and_notify(alert: Alert, user_email: str = None) -> bool:
 
 def trigger_alert_email(user_id: str, user_email: str, coin_id: str, 
                         current_price: float, threshold_price: float, 
-                        alert_id: str) -> bool:
+                        alert_id: str, app=None) -> bool:
     """
     Trigger an email notification when an alert threshold is met.
     
@@ -80,6 +80,7 @@ def trigger_alert_email(user_id: str, user_email: str, coin_id: str,
         current_price: The current price
         threshold_price: The alert threshold price
         alert_id: The alert ID for tracking
+        app: Flask app instance (optional)
     
     Returns:
         bool: True if email was sent successfully
@@ -90,7 +91,8 @@ def trigger_alert_email(user_id: str, user_email: str, coin_id: str,
         recipient_email=user_email,
         coin_id=coin_id,
         current_price=current_price,
-        threshold_price=threshold_price
+        threshold_price=threshold_price,
+        app=app
     )
     
     if email_sent:
