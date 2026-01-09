@@ -4,7 +4,7 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-PRICING_SERVICE_URL = "http://pricing-service:5000"
+PRICING_SERVICE_URL = "http://20.251.246.218/pricing-service"
 
 def get_coin_price(coin_id: str) -> Optional[float]:
     """
