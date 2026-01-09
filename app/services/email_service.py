@@ -2,6 +2,9 @@ from flask_mail import Message
 from app.extensions import mail
 from flask import render_template_string
 from datetime import datetime
+import logging
+
+logger = logging.getLogger(__name__)
 
 def get_alert_email_template(alert_data: dict) -> str:
     """Get the HTML template for the alert email."""
@@ -178,6 +181,8 @@ def send_alert_email(recipient_email: str, coin_id: str, current_price: float,
         bool: True if email was sent successfully, False otherwise
     """
     try:
+        logger.debug(f"[EMAIL] Preparing alert email - To: {recipient_email}, Coin: {coin_id}, Price: ${current_price}, Threshold: ${threshold_price}")
+        
         # Get the template
         template = get_alert_email_template({
             'coin_id': coin_id,
@@ -203,12 +208,16 @@ def send_alert_email(recipient_email: str, coin_id: str, current_price: float,
             html=html_content
         )
         
+        logger.debug(f"[EMAIL] Sending message to {recipient_email}")
+        
         # Send the email
         mail.send(msg)
+        
+        logger.info(f"[EMAIL] Successfully sent alert email to {recipient_email} for {coin_id.upper()}")
         return True
         
     except Exception as e:
-        print(f"Failed to send alert email to {recipient_email}: {e}")
+        logger.error(f"[EMAIL] Failed to send alert email to {recipient_email}: {e}", exc_info=True)
         return False
 
 
@@ -223,13 +232,17 @@ def send_test_email(recipient_email: str) -> bool:
         bool: True if email was sent successfully, False otherwise
     """
     try:
+        logger.info(f"[EMAIL] Sending test email to {recipient_email}")
+        
         msg = Message(
             subject="CryptoTracker - Test Email",
             recipients=[recipient_email],
             body="This is a test email to verify SMTP configuration is working correctly."
         )
         mail.send(msg)
+        
+        logger.info(f"[EMAIL] Test email successfully sent to {recipient_email}")
         return True
     except Exception as e:
-        print(f"Failed to send test email: {e}")
+        logger.error(f"[EMAIL] Failed to send test email to {recipient_email}: {e}", exc_info=True)
         return False

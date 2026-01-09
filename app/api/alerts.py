@@ -2,8 +2,10 @@ from flask import Blueprint, request, jsonify, g, current_app
 from app.services.alert_service import create_alert, get_user_alerts, deactivate_alert
 from app.middleware.auth_middleware import require_auth
 import requests
+import logging
 
 alerts_blueprint = Blueprint('alerts', __name__)
+logger = logging.getLogger(__name__)
 
 def get_user_email_from_current_user() -> str:
     """
@@ -16,10 +18,12 @@ def get_user_email_from_current_user() -> str:
     try:
         user_email = g.current_user.get('username', '')
         if user_email:
+            logger.debug(f"[ALERT] User email retrieved: {user_email}")
             return user_email
+        logger.warning("[ALERT] No user email found in current user context")
         return ''
     except Exception as e:
-        print(f"Failed to get user email from context: {e}")
+        logger.error(f"[ALERT] Failed to get user email from context: {e}")
         return ''
 
 @alerts_blueprint.route('/set-alert', methods=['POST'])
@@ -99,26 +103,34 @@ def set_alert():
         coin_id = data['coin_id'].lower().strip()
         threshold_price = float(data['threshold_price'])
         
+        logger.debug(f"[ALERT] Setting alert: coin_id={coin_id}, threshold_price={threshold_price}")
+        
         if threshold_price <= 0:
+            logger.warning(f"[ALERT] Invalid threshold price: {threshold_price}")
             return jsonify({"error": "threshold_price must be greater than 0"}), 400
         
         # Get user_id from auth middleware
         user_id = g.current_user['user_id']
+        logger.debug(f"[ALERT] User ID: {user_id}")
         
         # Get user email from user-service current-user endpoint
         user_email = get_user_email_from_current_user()
         if not user_email:
+            logger.error(f"[ALERT] Could not retrieve user email for user {user_id}")
             return jsonify({"error": "Could not retrieve user email from user-service"}), 400
         
+        logger.info(f"[ALERT] Creating alert for user {user_id} ({user_email}): {coin_id} at ${threshold_price}")
         alert, _ = create_alert(user_id, user_email, coin_id, threshold_price)
+        logger.info(f"[ALERT] Alert created with ID: {alert.id}")
         
         # Check if alert threshold is already met and trigger notification immediately
         from app.services.alert_service import check_alert_and_notify
         try:
+            logger.debug(f"[ALERT] Checking alert immediately: alert_id={alert.id}")
             notification_sent = check_alert_and_notify(alert, user_email)
-            print(f"Immediate alert check for alert {alert.id}: notification_sent={notification_sent}")
+            logger.info(f"[ALERT] Immediate alert check for alert {alert.id}: notification_sent={notification_sent}")
         except Exception as e:
-            print(f"Error checking alert immediately: {e}")
+            logger.error(f"[ALERT] Error checking alert immediately: {e}", exc_info=True)
             # Don't fail the entire request if immediate check fails
         
         return jsonify({
@@ -181,7 +193,9 @@ def get_alerts():
     """
     try:
         user_id = g.current_user['user_id']
+        logger.debug(f"[ALERT] Fetching alerts for user: {user_id}")
         alerts = get_user_alerts(user_id)
+        logger.debug(f"[ALERT] Found {len(alerts)} active alerts for user {user_id}")
         
         return jsonify({
             "alerts": [
@@ -241,11 +255,14 @@ def delete_alert(alert_id):
               type: string
     """
     try:
+        logger.info(f"[ALERT] Deactivating alert: {alert_id}")
         success = deactivate_alert(alert_id)
         
         if not success:
+            logger.warning(f"[ALERT] Alert not found for deactivation: {alert_id}")
             return jsonify({"error": "Alert not found"}), 404
         
+        logger.info(f"[ALERT] Alert {alert_id} deactivated successfully")
         return jsonify({"message": "Alert deactivated successfully"}), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 500
@@ -257,8 +274,10 @@ def check_alerts():
     No authentication required as it's called from pricing-service.
     """
     try:
+        logger.info("[ALERT] Starting batch alert check")
         from app.services.alert_service import check_all_alerts
         check_all_alerts(current_app)
+        logger.info("[ALERT] Batch alert check completed")
         return jsonify({"message": "Alert check completed"}), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 500
