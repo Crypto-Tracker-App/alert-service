@@ -8,7 +8,7 @@ logger = logging.getLogger(__name__)
 def get_pricing_service_url():
     """Get pricing service URL from config or use default."""
     try:
-        return current_app.config.get("PRICING_SERVICE_URL", "http://pricing-service:5000")
+        return current_app.config.get("PRICING_SERVICE_URL", "http://pricing-service:12000")
     except RuntimeError:
         # Outside of app context, use default
         return "http://pricing-service:5000"
