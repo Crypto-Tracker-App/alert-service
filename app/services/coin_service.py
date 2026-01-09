@@ -9,11 +9,11 @@ def get_pricing_service_url():
     """Get pricing service URL from config or use default."""
     try:
         url = current_app.config.get("PRICING_SERVICE_URL", "http://pricing-service:12000")
-        logger.debug(f"[COIN] Using PRICING_SERVICE_URL from config: {url}")
+        logger.info(f"[COIN] App context available. Using PRICING_SERVICE_URL from config: {url}")
         return url
-    except RuntimeError:
+    except RuntimeError as e:
         url = "http://pricing-service:12000"
-        logger.debug(f"[COIN] Using default PRICING_SERVICE_URL: {url}")
+        logger.warning(f"[COIN] No app context (RuntimeError: {str(e)}). Using fallback PRICING_SERVICE_URL: {url}")
         return url
 
 def get_coin_price(coin_id: str) -> Optional[float]:
