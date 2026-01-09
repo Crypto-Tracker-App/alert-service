@@ -96,6 +96,31 @@ spec:
             secretKeyRef:
               name: alertservice-secret
               key: SECRET_KEY
+        - name: MAIL_SERVER
+          valueFrom:
+            secretKeyRef:
+              name: alertservice-secret
+              key: MAIL_SERVER
+        - name: MAIL_PORT
+          valueFrom:
+            secretKeyRef:
+              name: alertservice-secret
+              key: MAIL_PORT
+        - name: MAIL_USE_TLS
+          valueFrom:
+            secretKeyRef:
+              name: alertservice-secret
+              key: MAIL_USE_TLS
+        - name: MAIL_USERNAME
+          valueFrom:
+            secretKeyRef:
+              name: alertservice-secret
+              key: MAIL_USERNAME
+        - name: MAIL_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: alertservice-secret
+              key: MAIL_PASSWORD
         resources:
           requests:
             memory: "96Mi"
