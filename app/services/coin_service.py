@@ -28,7 +28,7 @@ def get_coin_price(coin_id: str) -> Optional[float]:
     """
     try:
         pricing_service_url = get_pricing_service_url()
-        url = f"{pricing_service_url}/coin/{coin_id}"
+        url = f"{pricing_service_url}/api/coin/{coin_id}"
         logger.info(f"[COIN] Fetching price from {url} (timeout: 5s)")
         response = requests.get(url, timeout=5)
         
