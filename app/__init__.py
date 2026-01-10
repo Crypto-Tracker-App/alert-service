@@ -25,11 +25,13 @@ def create_app():
             "version": "1.0.0"
         },
         "securityDefinitions": {
-            "BearerAuth": {
-                "type": "apiKey",
-                "name": "Authorization",
-                "in": "header",
-                "description": "JWT Bearer token for authentication. Format: Bearer <token>"
+            'BearerAuth': {
+                'type': 'apiKey',
+                'name': 'Authorization',
+                'scheme': 'bearer',
+                'bearerFormat': 'bearer',
+                'in': 'header',
+                'description': 'Type in the *\'Value\'* input box below: **\'Bearer &lt;JWT&gt;\'**, where JWT is the token',
             }
         },
         "security": [
