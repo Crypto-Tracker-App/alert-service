@@ -7,7 +7,6 @@ on:
 env:
   ACR: cryptotracker.azurecr.io
   IMAGE_NAME: alert-service
-  IMAGE_TAG: ${{ github.sha }}
 
 jobs:
   build-and-push:
@@ -16,14 +15,6 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.11'
-
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v2
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
@@ -42,7 +33,7 @@ jobs:
           platforms: linux/amd64
           push: true
           tags: |
-            ${{ env.ACR }}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
+            ${{ env.ACR }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
             ${{ env.ACR }}/${{ env.IMAGE_NAME }}:latest
 
   deploy-to-aks:
@@ -53,9 +44,6 @@ jobs:
       contents: read
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
       - name: Azure Login (OIDC)
         uses: azure/login@v2
         with:
@@ -69,24 +57,7 @@ jobs:
           cluster-name: ${{ vars.AKS_NAME }}
           resource-group: ${{ vars.AKS_RG }}
 
-      - name: Deploy PostgreSQL
+      - name: Restart deployment to pull new image
         run: |
-          kubectl apply -f k8s/postgresql-deployment.yaml
-          kubectl apply -f k8s/postgresql-service.yaml
-
-      - name: Apply alertservice ConfigMap
-        run: |
-          kubectl apply -f k8s/alertservice-configmap.yaml
-          kubectl apply -f k8s/alertservice-secret.yaml
-          kubectl get configmap alertservice-config
-          kubectl get secret alertservice-secret
-
-      - name: Deploy alert-service
-        run: |
-          kubectl apply -f k8s/alertservice-deployment.yaml
-          kubectl apply -f k8s/alertservice-service.yaml
-
           kubectl rollout restart deployment/alert-service
           kubectl rollout status deployment/alert-service --timeout=180s
-
-          kubectl get pods
