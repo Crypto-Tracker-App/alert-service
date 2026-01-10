@@ -23,14 +23,12 @@ jobs:
 
       - name: Install dependencies
         run: |
-          cd alert-service
           python -m pip install --upgrade pip
-          pip install -r requirements.txt
+          pip install -r alert-service/requirements.txt
 
       - name: Run tests
         run: |
-          cd alert-service
-          PYTHONPATH="${PYTHONPATH}:$(pwd)" pytest tests/ -v --tb=short
+          PYTHONPATH="${PYTHONPATH}:$(pwd)/alert-service" pytest alert-service/tests/ -v --tb=short
 
   build-and-push:
     needs: test
