@@ -2,7 +2,7 @@ from flask import Flask
 from os import getenv
 from flasgger import Swagger
 
-from .config import DevelopmentConfig, ProductionConfig
+from .config import DevelopmentConfig, ProductionConfig, TestingConfig
 from .extensions import db, mail, scheduler
 
 
@@ -13,6 +13,8 @@ def create_app():
     env = getenv('FLASK_ENV', 'development')
     if env == 'production':
         app.config.from_object(ProductionConfig)
+    elif env == 'testing':
+        app.config.from_object(TestingConfig)
     else:
         app.config.from_object(DevelopmentConfig)
     
@@ -76,8 +78,8 @@ def create_app():
     with app.app_context():
         db.create_all()
         
-        # Start scheduler for daily price checks
-        if not scheduler.running:
+        # Start scheduler for daily price checks (only in production/development)
+        if not app.config.get('TESTING', False) and not scheduler.running:
             from .services.alert_service import check_all_alerts
             scheduler.add_job(check_all_alerts, 'cron', hour=0, minute=0, id='check_alerts_daily', args=[app])
             scheduler.start()

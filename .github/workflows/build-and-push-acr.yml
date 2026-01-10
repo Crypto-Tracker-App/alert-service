@@ -9,7 +9,30 @@ env:
   IMAGE_NAME: alert-service
 
 jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r alert-service/requirements.txt
+
+      - name: Run tests
+        working-directory: alert-service
+        run: |
+          pytest tests/ -v --tb=short
+
   build-and-push:
+    needs: test
     runs-on: ubuntu-latest
 
     steps:
@@ -29,7 +52,7 @@ jobs:
       - name: Build and push image
         uses: docker/build-push-action@v4
         with:
-          context: .
+          context: ./alert-service
           platforms: linux/amd64
           push: true
           tags: |
