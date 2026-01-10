@@ -24,11 +24,11 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -r alert-service/requirements.txt
+          pip install -r requirements.txt
 
       - name: Run tests
         run: |
-          PYTHONPATH="${PYTHONPATH}:$(pwd)/alert-service" pytest alert-service/tests/ -v --tb=short
+          PYTHONPATH="${PYTHONPATH}:$(pwd)" pytest tests/ -v --tb=short
 
   build-and-push:
     needs: test
@@ -51,7 +51,7 @@ jobs:
       - name: Build and push image
         uses: docker/build-push-action@v4
         with:
-          context: ./alert-service
+          context: .
           platforms: linux/amd64
           push: true
           tags: |
