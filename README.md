@@ -1,143 +1,238 @@
 # Alert Service
 
-A microservice for managing cryptocurrency price alerts and push notifications.
+A microservice for managing cryptocurrency price alerts in the Azure Crypto Tracker Application. This service monitors cryptocurrency prices and triggers alerts when specified conditions are met.
 
-## Setup
+## Overview
 
-### Environment Variables
+The Alert Service is part of the Azure Crypto Tracker ecosystem and provides the following functionality:
+- Create, update, and delete cryptocurrency price alerts
+- Monitor price changes and trigger notifications
+- Send alerts via email and push notifications
+- JWT-based authentication
+- Full Swagger/OpenAPI documentation
 
-The alert service requires the following environment variables to be set:
+## Prerequisites
 
+- Python 3.11+
+- Docker (for containerization)
+- Azure CLI (for deployment to AKS)
+- kubectl (for Kubernetes management)
+- Git
+
+## Installation
+
+### Local Development Setup
+
+1. **Clone the repository**
 ```bash
-# Database Configuration
-POSTGRES_USER=your_postgres_user
-POSTGRES_PASSWORD=your_postgres_password
-POSTGRES_DB=alert_service_db
-DB_HOST=localhost
-DB_PORT=5432
-
-# Application Configuration
-FLASK_ENV=development
-SECRET_KEY=your-secret-key-here
-PORT=5001
-
-# Service URLs
-AUTH_SERVICE_URL=http://localhost:5000
-FRONTEND_URL=http://localhost:3000
-
-# Web Push Notification Configuration (REQUIRED for push notifications)
-VAPID_PUBLIC_KEY=your_vapid_public_key
-VAPID_PRIVATE_KEY=your_vapid_private_key
-VAPID_EMAIL=admin@cryptotracker.com
+cd /Users/matjazmadon/Development/crypto_tracker/alert-service
 ```
 
-### Generating VAPID Keys
-
-Web Push notifications require VAPID (Voluntary Application Server Identification) keys. Generate them using:
-
+2. **Create a Python virtual environment**
 ```bash
-python -c "from pywebpush import generate_keys; keys = generate_keys(); print(f'Public: {keys[\"public_key\"]}'); print(f'Private: {keys[\"private_key\"]}')"
+python3 -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
 ```
 
-Or use this Python script:
-
-```python
-from pywebpush import generate_keys
-
-keys = generate_keys()
-print(f"VAPID_PUBLIC_KEY={keys['public_key']}")
-print(f"VAPID_PRIVATE_KEY={keys['private_key']}")
-```
-
-Copy the output and set these as environment variables.
-
-### Installation
-
+3. **Install dependencies**
 ```bash
-# Install dependencies
 pip install -r requirements.txt
+```
 
-# Run migrations (if applicable)
-# ...
+4. **Configure environment variables**
+Create a `.env` file in the root directory with the necessary environment variables:
+```bash
+FLASK_ENV=development
+FLASK_DEBUG=True
+SECRET_KEY=your_secret_key
+JWT_SECRET=your_jwt_secret
+DATABASE_URL=your_database_url
+```
 
-# Start the service
+## Running the Application
+
+### Local Development
+
+Run the Flask development server:
+```bash
 python wsgi.py
 ```
 
-## API Endpoints
+The application will be available at `http://localhost:5000`
 
-### Set Alert
-`POST /api/set-alert`
+### Docker
 
-Create a new price alert for a cryptocurrency.
-
-**Request:**
-```json
-{
-  "coin_id": "bitcoin",
-  "threshold_price": 50000
-}
+Build and run the Docker image locally:
+```bash
+docker build -t alert-service:latest .
+docker run -p 5000:5000 alert-service:latest
 ```
 
-**Response:**
-```json
-{
-  "id": 1,
-  "coin_id": "bitcoin",
-  "threshold_price": 50000,
-  "is_active": true,
-  "created_at": "2026-01-08T12:00:00"
-}
+## Testing
+
+Run the test suite using pytest:
+```bash
+PYTHONPATH="${PYTHONPATH}:$(pwd)" pytest tests/ -v
 ```
 
-### Get Alerts
-`GET /api/alerts`
-
-Retrieve all active alerts for the current user.
-
-### Delete Alert
-`DELETE /api/alerts/<alert_id>`
-
-Deactivate an alert.
-
-### Subscribe to Notifications
-`POST /api/subscribe-notifications`
-
-Register a push notification subscription.
-
-**Request:**
-```json
-{
-  "subscription": {
-    "endpoint": "...",
-    "keys": {
-      "p256dh": "...",
-      "auth": "..."
-    }
-  }
-}
+Run specific test file:
+```bash
+PYTHONPATH="${PYTHONPATH}:$(pwd)" pytest tests/test_health.py -v
 ```
 
-### Check Alerts
-`POST /api/check-alerts`
+## API Documentation
 
-Internal endpoint called by the pricing service to check and trigger alerts.
+Once the service is running, access the Swagger/OpenAPI documentation:
+- **Interactive UI**: `http://localhost:5000/apidocs/`
+- **API Specification**: `http://localhost:5000/apispec.json`
 
-## Push Notifications
+## Project Structure
 
-Push notifications are triggered automatically when:
+```
+alert-service/
+├── app/
+│   ├── __init__.py           # Flask app initialization
+│   ├── config.py             # Configuration settings
+│   ├── extensions.py         # Flask extensions
+│   ├── api/
+│   │   ├── alerts.py         # Alert endpoints
+│   │   └── health.py         # Health check endpoint
+│   ├── middleware/
+│   │   └── auth_middleware.py # JWT authentication middleware
+│   ├── models/
+│   │   └── models.py         # Database models
+│   ├── services/
+│   │   ├── alert_service.py  # Alert business logic
+│   │   ├── coin_service.py   # Cryptocurrency data service
+│   │   ├── email_service.py  # Email notification service
+│   │   ├── jwt_service.py    # JWT token management
+│   │   └── push_service.py   # Push notification service
+│   └── utils/
+│       └── resilience.py     # Resilience patterns
+├── tests/                     # Test suite
+├── Dockerfile                 # Container image definition
+├── requirements.txt          # Python dependencies
+├── wsgi.py                   # Application entry point
+└── pytest.ini                # Pytest configuration
+```
 
-1. A new alert is created and the current price already meets the threshold
-2. The scheduler checks all alerts once daily (at midnight)
+## Authentication
 
-The push notification includes:
-- Alert title with coin name
-- Current price information
-- Threshold price for reference
+The Alert Service uses JWT (JSON Web Tokens) for authentication. Include the JWT token in the Authorization header:
 
-## Architecture
+```bash
+Authorization: Bearer <your_jwt_token>
+```
 
-- **Alert Service**: Manages price alerts and coordinates with other services
-- **Push Service**: Handles Web Push Protocol communication with client subscriptions
-- **Coin Service**: Fetches current cryptocurrency prices
-- **Scheduler**: Runs periodic checks for alert conditions
+## Production Deployment
+
+### Automated Deployment with GitHub Actions
+
+The project uses GitHub Actions for CI/CD with the `build-and-push-acr.yml` workflow. This workflow automates the entire deployment process:
+
+#### How It Works
+
+1. **Trigger**: Every push to the `main` branch triggers the workflow
+2. **Test**: Runs the full test suite to ensure code quality
+3. **Build**: Builds a Docker image and pushes it to Azure Container Registry (ACR)
+4. **Deploy**: Automatically deploys the new image to the Azure Kubernetes Service (AKS) cluster
+
+#### Workflow Stages
+
+**1. Test Stage**
+- Checks out the code
+- Sets up Python 3.11
+- Installs dependencies
+- Runs all tests with pytest
+
+**2. Build and Push Stage** (runs after tests pass)
+- Sets up Docker Buildx for multi-platform builds
+- Logs in to ACR using stored credentials
+- Builds and pushes the image to `cryptotracker.azurecr.io/alert-service` with tags:
+  - `<commit_sha>` (specific commit)
+  - `latest` (most recent)
+
+**3. Deploy to AKS Stage** (runs after image is pushed)
+- Authenticates to Azure using OIDC
+- Sets the AKS cluster context
+- Restarts the alert-service deployment to pull the new image
+- Waits for the rollout to complete (max 3 minutes)
+
+#### Committing to Production
+
+To deploy to production, follow these steps:
+
+1. **Make your changes and commit**
+```bash
+git add .
+git commit -m "feat: add new alert feature"
+```
+
+2. **Push to main branch**
+```bash
+git push origin main
+```
+
+3. **Monitor the deployment**
+   - Go to GitHub Actions in your repository
+   - Click on the triggered workflow to see real-time logs
+   - The workflow will:
+     - Run all tests
+     - Build and push the Docker image to ACR
+     - Deploy to the AKS cluster in the `crypto-tracker` resource group
+
+#### Required GitHub Secrets
+
+The workflow requires the following GitHub secrets to be configured:
+- `ACR_USERNAME`: Azure Container Registry username
+- `ACR_PASSWORD`: Azure Container Registry password
+- `AZURE_CLIENT_ID`: Azure service principal client ID
+- `AZURE_TENANT_ID`: Azure tenant ID
+- `AZURE_SUBSCRIPTION_ID`: Azure subscription ID
+
+#### Required GitHub Variables
+
+- `AKS_NAME`: Name of the AKS cluster (crypto-tracker)
+- `AKS_RG`: Resource group name (crypto-tracker)
+
+#### Deployment Verification
+
+After the workflow completes:
+
+```bash
+# Check the deployment status
+kubectl get deployment alert-service
+kubectl get pods -l app=alert-service
+
+# View recent logs
+kubectl logs -l app=alert-service --tail=50
+```
+
+#### Rollback
+
+If issues occur, rollback to the previous version:
+
+```bash
+kubectl rollout undo deployment/alert-service
+kubectl rollout status deployment/alert-service
+```
+
+## Contributing
+
+1. Create a feature branch from `main`
+2. Make your changes and write tests
+3. Run the test suite locally to ensure all tests pass
+4. Commit and push to your branch
+5. Create a pull request
+
+## Environment
+
+- **Resource Group**: crypto-tracker
+- **Kubernetes Service**: crypto-tracker
+- **Container Registry**: cryptotracker (Azure Container Registry)
+- **Region**: norwayeast
+- **Namespace**: default
+
+## Support
+
+For issues or questions, contact the development team or open an issue in the repository.
