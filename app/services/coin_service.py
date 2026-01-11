@@ -38,36 +38,43 @@ def get_coin_price(coin_id: str) -> Optional[float]:
     This function demonstrates circuit breaker and retry patterns:
     - If pricing service is down, _fetch_coin_price() will retry 3 times
     - After 5 consecutive failures, circuit breaker opens and raises immediately
-    - Exceptions propagate to allow proper error handling and circuit breaker visibility
     
     Args:
         coin_id: The coin ID (e.g., 'bitcoin', 'ethereum')
     
     Returns:
-        The current price in USD
-        
-    Raises:
-        Exception: If circuit breaker is open or service is unavailable after retries
+        The current price in USD, or None if unavailable
     """
     pricing_service_url = get_pricing_service_url()
     url = f"{pricing_service_url}/api/coin/{coin_id}"
     logger.info(f"[COIN] Fetching price from {url} (timeout: 5s)")
     
-    # Let _fetch_coin_price() handle retries and circuit breaker
-    # Exceptions will propagate if circuit is open or all retries fail
-    data = _fetch_coin_price(url)
-    
-    # Check if response has the expected structure
-    if data.get("status") != "success" or "data" not in data:
-        logger.warning(f"[COIN] Invalid response structure for {coin_id}: {data}")
-        return None
-    
-    coin_data = data.get("data", {})
-    price = coin_data.get("current_price")
-    
-    if price is not None:
-        logger.info(f"[COIN] Successfully fetched price for {coin_id}: ${price}")
-        return price
-    else:
-        logger.warning(f"[COIN] No price data in response for {coin_id}: {coin_data}")
+    try:
+        # _fetch_coin_price() handles retries and circuit breaker
+        data = _fetch_coin_price(url)
+        
+        # Check if response has the expected structure
+        if data.get("status") != "success" or "data" not in data:
+            logger.warning(f"[COIN] Invalid response structure for {coin_id}: {data}")
+            return None
+        
+        coin_data = data.get("data", {})
+        price = coin_data.get("current_price")
+        
+        if price is not None:
+            logger.info(f"[COIN] Successfully fetched price for {coin_id}: ${price}")
+            return price
+        else:
+            logger.warning(f"[COIN] No price data in response for {coin_id}: {coin_data}")
+            return None
+            
+    except Exception as e:
+        error_msg = str(e)
+        # Check if it's a circuit breaker error
+        if "is OPEN" in error_msg:
+            logger.error(f"[COIN] Circuit breaker is OPEN - pricing service unavailable")
+        elif "Max retries exceeded" in error_msg or "Connection refused" in error_msg:
+            logger.error(f"[COIN] Pricing service unavailable - retry mechanism exhausted")
+        else:
+            logger.error(f"[COIN] Error fetching price: {error_msg}")
         return None
