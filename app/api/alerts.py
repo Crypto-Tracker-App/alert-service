@@ -2,10 +2,32 @@ from flask import Blueprint, request, jsonify, g, current_app
 from app.services.alert_service import create_alert, get_user_alerts, deactivate_alert
 from app.services.coin_service import get_coin_price
 from app.middleware.auth_middleware import require_auth
+from app.utils.resilience import retry, circuit_breaker
 import logging
 
 alerts_blueprint = Blueprint('alerts', __name__)
 logger = logging.getLogger(__name__)
+
+
+# DEMONSTRATION: Simple decorator usage example
+@retry(max_attempts=2, delay=1)
+@circuit_breaker(failure_threshold=3, recovery_timeout=30, name="demo_service")
+def demo_resilient_call(coin_id: str) -> dict:
+    """
+    Simple demonstration of @retry and @circuit_breaker decorators.
+    
+    This function shows:
+    1. @retry: Automatically retries failed calls up to 2 times with 1 second delays
+    2. @circuit_breaker: Opens circuit after 3 failures, recovers after 30 seconds
+    
+    The decorators are stacked (retry is innermost, circuit_breaker is outermost).
+    This means: request → circuit_breaker → retry → actual function call
+    """
+    price = get_coin_price(coin_id)
+    if price is None:
+        raise Exception(f"Failed to fetch price for {coin_id}")
+    return {"coin_id": coin_id, "price": price}
+
 
 @alerts_blueprint.route('/set-alert', methods=['POST'])
 @require_auth
@@ -282,12 +304,21 @@ def check_alerts():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
+
+
+
 @alerts_blueprint.route('/test-pricing/<coin_id>', methods=['GET'])
 @require_auth
 def test_pricing(coin_id):
     """
-    Test endpoint to validate coin price fetch from pricing service.
-    Used for circuit breaker demonstrations - does NOT store any data.
+    Test endpoint to demonstrate circuit breaker and retry patterns.
+    
+    This endpoint helps visualize the resilience decorators in action:
+    - Make requests while pricing service is UP → success
+    - Scale pricing service DOWN → see retry attempts then circuit breaker open
+    - Wait 60 seconds → circuit breaker recovers automatically
+    
+    Use for live demonstrations of fault tolerance patterns.
     ---
     tags:
       - Testing
@@ -302,7 +333,7 @@ def test_pricing(coin_id):
         example: "bitcoin"
     responses:
       200:
-        description: Successfully fetched coin price from pricing service
+        description: Successfully fetched coin price (service is healthy)
         schema:
           type: object
           properties:
@@ -316,20 +347,14 @@ def test_pricing(coin_id):
               type: number
               format: float
               example: 42500.50
-            message:
-              type: string
-              example: "Pricing service is operational"
       503:
-        description: Circuit breaker is open or pricing service is unavailable
+        description: Pricing service is failing - either retrying or circuit breaker is open
         schema:
           type: object
           properties:
             status:
               type: string
               example: "error"
-            coin_id:
-              type: string
-              example: "bitcoin"
             error:
               type: string
               example: "Circuit breaker is open for 'pricing_service'. Service unavailable."
@@ -337,28 +362,37 @@ def test_pricing(coin_id):
     try:
         logger.info(f"[TEST] Testing pricing service with coin_id: {coin_id}")
         
+        # Call get_coin_price() which has @retry and @circuit_breaker decorators
+        # If pricing service is down:
+        #   - First 3 requests: @retry will attempt 3 times (with delays)
+        #   - After 5 total failures: @circuit_breaker opens
+        #   - Subsequent requests: fail instantly with circuit breaker error
         price = get_coin_price(coin_id)
-        
-        if price is None:
-            logger.warning(f"[TEST] Could not fetch price for {coin_id} - circuit breaker may be open")
-            return jsonify({
-                "status": "error",
-                "coin_id": coin_id,
-                "error": "Circuit breaker is open for 'pricing_service'. Service unavailable."
-            }), 503
         
         logger.info(f"[TEST] Successfully fetched price for {coin_id}: ${price}")
         return jsonify({
             "status": "success",
             "coin_id": coin_id,
-            "price": price,
-            "message": "Pricing service is operational"
+            "price": price
         }), 200
         
     except Exception as e:
-        logger.error(f"[TEST] Error testing pricing service: {str(e)}", exc_info=True)
-        return jsonify({
-            "status": "error",
-            "coin_id": coin_id,
-            "error": str(e)
-        }), 500
+        error_msg = str(e)
+        logger.error(f"[TEST] Error calling pricing service: {error_msg}", exc_info=True)
+        
+        # Check if this is a circuit breaker error
+        if "Circuit" in error_msg and "open" in error_msg:
+            logger.warning(f"[TEST] Circuit breaker is OPEN - service unavailable")
+            return jsonify({
+                "status": "error",
+                "error": error_msg,
+                "note": "Circuit breaker opened after repeated failures. Service will recover in 60 seconds."
+            }), 503
+        else:
+            # Connection errors, timeouts, or retry exhausted
+            logger.warning(f"[TEST] Pricing service unavailable: {error_msg}")
+            return jsonify({
+                "status": "error",
+                "error": error_msg,
+                "note": "Retry pattern is attempting to recover. Watch logs for progress."
+            }), 503
