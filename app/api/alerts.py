@@ -380,19 +380,19 @@ def test_pricing(coin_id):
         error_msg = str(e)
         logger.error(f"[TEST] Error calling pricing service: {error_msg}", exc_info=True)
         
-        # Check if this is a circuit breaker error
-        if "Circuit" in error_msg and "open" in error_msg:
-            logger.warning(f"[TEST] Circuit breaker is OPEN - service unavailable")
+        # Check if this is a circuit breaker error (circuit is OPEN)
+        if "Circuit" in error_msg and "OPEN" in error_msg:
+            logger.warning(f"[TEST] Circuit breaker is OPEN - failing fast without retry")
             return jsonify({
                 "status": "error",
                 "error": error_msg,
-                "note": "Circuit breaker opened after repeated failures. Service will recover in 60 seconds."
+                "note": "🔴 CIRCUIT BREAKER OPEN: Service is unavailable. Will automatically recover in 60 seconds."
             }), 503
         else:
-            # Connection errors, timeouts, or retry exhausted
-            logger.warning(f"[TEST] Pricing service unavailable: {error_msg}")
+            # Connection errors, timeouts, or retry exhausted (first request hitting a downed service)
+            logger.warning(f"[TEST] Pricing service unavailable - retry mechanism exhausted: {error_msg}")
             return jsonify({
                 "status": "error",
                 "error": error_msg,
-                "note": "Retry pattern is attempting to recover. Watch logs for progress."
+                "note": "⚠️ RETRY EXHAUSTED: Service down. Circuit breaker will open after 5 total failures to prevent cascading requests."
             }), 503

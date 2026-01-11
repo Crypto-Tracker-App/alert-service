@@ -18,14 +18,14 @@ def get_pricing_service_url():
         return url
 
 @retry(max_attempts=3, delay=1)
-@circuit_breaker(failure_threshold=5, recovery_timeout=60, name="pricing_service")
+@circuit_breaker(failure_threshold=5, recovery_timeout=15, name="pricing_service")
 def _fetch_coin_price(url: str) -> dict:
     """
     Fetch coin price from pricing service with resilience patterns.
     
     Decorators:
     - @retry: Automatically retries up to 3 times with 1 second delay between attempts
-    - @circuit_breaker: Stops sending requests after 5 failures, recovers after 60 seconds
+    - @circuit_breaker: Stops sending requests after 5 failures, recovers after 15 seconds
     """
     response = requests.get(url, timeout=5)
     response.raise_for_status()
