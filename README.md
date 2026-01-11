@@ -225,14 +225,6 @@ kubectl rollout status deployment/alert-service
 4. Commit and push to your branch
 5. Create a pull request
 
-## Environment
-
-- **Resource Group**: crypto-tracker
-- **Kubernetes Service**: crypto-tracker
-- **Container Registry**: cryptotracker (Azure Container Registry)
-- **Region**: norwayeast
-- **Namespace**: default
-
 ## Support
 
 For issues or questions, contact the development team or open an issue in the repository.
