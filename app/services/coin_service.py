@@ -2,6 +2,7 @@ import requests
 from typing import Optional
 import logging
 from flask import current_app
+from app.utils.resilience import retry, circuit_breaker
 
 logger = logging.getLogger(__name__)
 
@@ -15,6 +16,14 @@ def get_pricing_service_url():
         url = "http://pricing-service:12000"
         logger.warning(f"[COIN] No app context (RuntimeError: {str(e)}). Using fallback PRICING_SERVICE_URL: {url}")
         return url
+
+@retry(max_attempts=3, delay=1)
+@circuit_breaker(failure_threshold=5, recovery_timeout=60, name="pricing_service")
+def _fetch_coin_price(url: str) -> dict:
+    """Internal method to fetch coin price with resilience."""
+    response = requests.get(url, timeout=5)
+    response.raise_for_status()
+    return response.json()
 
 def get_coin_price(coin_id: str) -> Optional[float]:
     """
@@ -30,25 +39,8 @@ def get_coin_price(coin_id: str) -> Optional[float]:
         pricing_service_url = get_pricing_service_url()
         url = f"{pricing_service_url}/api/coin/{coin_id}"
         logger.info(f"[COIN] Fetching price from {url} (timeout: 5s)")
-        response = requests.get(url, timeout=5)
         
-        # Check for HTTP errors first
-        if response.status_code != 200:
-            logger.warning(f"[COIN] HTTP {response.status_code} fetching price for {coin_id}. Response: {response.text[:200]}")
-            return None
-        
-        # Check if response body is empty
-        if not response.text or not response.text.strip():
-            logger.error(f"[COIN] Empty response body for {coin_id} from {url}")
-            return None
-        
-        # Try to parse JSON response
-        try:
-            data = response.json()
-        except Exception as json_error:
-            logger.error(f"[COIN] Failed to parse JSON response for {coin_id}: {str(json_error)}")
-            logger.error(f"[COIN] Response text: {response.text[:500]}")
-            return None
+        data = _fetch_coin_price(url)
         
         # Check if response has the expected structure
         if data.get("status") != "success" or "data" not in data:

@@ -1,5 +1,6 @@
 from flask import Blueprint, request, jsonify, g, current_app
 from app.services.alert_service import create_alert, get_user_alerts, deactivate_alert
+from app.services.coin_service import get_coin_price
 from app.middleware.auth_middleware import require_auth
 import logging
 
@@ -280,3 +281,84 @@ def check_alerts():
         return jsonify({"message": "Alert check completed"}), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
+@alerts_blueprint.route('/test-pricing/<coin_id>', methods=['GET'])
+@require_auth
+def test_pricing(coin_id):
+    """
+    Test endpoint to validate coin price fetch from pricing service.
+    Used for circuit breaker demonstrations - does NOT store any data.
+    ---
+    tags:
+      - Testing
+    security:
+      - BearerAuth: []
+    parameters:
+      - in: path
+        name: coin_id
+        type: string
+        required: true
+        description: The coin ID to test (e.g., bitcoin, ethereum)
+        example: "bitcoin"
+    responses:
+      200:
+        description: Successfully fetched coin price from pricing service
+        schema:
+          type: object
+          properties:
+            status:
+              type: string
+              example: "success"
+            coin_id:
+              type: string
+              example: "bitcoin"
+            price:
+              type: number
+              format: float
+              example: 42500.50
+            message:
+              type: string
+              example: "Pricing service is operational"
+      503:
+        description: Circuit breaker is open or pricing service is unavailable
+        schema:
+          type: object
+          properties:
+            status:
+              type: string
+              example: "error"
+            coin_id:
+              type: string
+              example: "bitcoin"
+            error:
+              type: string
+              example: "Circuit breaker is open for 'pricing_service'. Service unavailable."
+    """
+    try:
+        logger.info(f"[TEST] Testing pricing service with coin_id: {coin_id}")
+        
+        price = get_coin_price(coin_id)
+        
+        if price is None:
+            logger.warning(f"[TEST] Could not fetch price for {coin_id} - circuit breaker may be open")
+            return jsonify({
+                "status": "error",
+                "coin_id": coin_id,
+                "error": "Circuit breaker is open for 'pricing_service'. Service unavailable."
+            }), 503
+        
+        logger.info(f"[TEST] Successfully fetched price for {coin_id}: ${price}")
+        return jsonify({
+            "status": "success",
+            "coin_id": coin_id,
+            "price": price,
+            "message": "Pricing service is operational"
+        }), 200
+        
+    except Exception as e:
+        logger.error(f"[TEST] Error testing pricing service: {str(e)}", exc_info=True)
+        return jsonify({
+            "status": "error",
+            "coin_id": coin_id,
+            "error": str(e)
+        }), 500

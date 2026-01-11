@@ -79,3 +79,4 @@ def health():
             'status': 'error',
             'detail': str(exc)
         }), 503
+

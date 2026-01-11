@@ -1,7 +1,11 @@
 import json
 import requests
+import logging
 from app.models import PushSubscription
 from app.extensions import db
+from app.utils.resilience import retry, circuit_breaker
+
+logger = logging.getLogger(__name__)
 
 def subscribe_to_push(user_id: str, subscription_data: dict) -> PushSubscription:
     """Store a push notification subscription for a user."""
@@ -21,6 +25,12 @@ def get_user_subscriptions(user_id: str):
         PushSubscription.is_active == True
     ).all()
 
+@retry(max_attempts=2, delay=1)
+@circuit_breaker(failure_threshold=5, recovery_timeout=60, name="push_endpoint")
+def _send_push_to_endpoint(endpoint: str, payload: dict) -> None:
+    """Send push notification to endpoint with resilience."""
+    requests.post(endpoint, json=payload, timeout=5)
+
 def send_push_notification(user_id: str, title: str, body: str, data: dict = None) -> bool:
     """Send a push notification to all active subscriptions for a user."""
     subscriptions = get_user_subscriptions(user_id)
@@ -32,7 +42,6 @@ def send_push_notification(user_id: str, title: str, body: str, data: dict = Non
     for sub in subscriptions:
         try:
             subscription_data = json.loads(sub.subscription_data)
-            # Using web push protocol - can be replaced with actual web push library
             endpoint = subscription_data.get('endpoint')
             
             if endpoint:
@@ -46,18 +55,10 @@ def send_push_notification(user_id: str, title: str, body: str, data: dict = Non
                     }
                 }
                 
-                # In production, use pywebpush library for proper encryption
-                # For now, send to local endpoint
-                requests.post(
-                    endpoint,
-                    json=payload,
-                    timeout=5
-                )
+                _send_push_to_endpoint(endpoint, payload)
                 success = True
         except Exception as e:
-            print(f"Failed to send push notification: {e}")
-            continue
-    
+            logger.warning(f"Failed to send push notification: {e}")
     return success
 
 def trigger_alert_push_notification(user_id: str, coin_id: str, current_price: float, threshold_price: float) -> bool:
