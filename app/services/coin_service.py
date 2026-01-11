@@ -3,8 +3,16 @@ from typing import Optional
 import logging
 from flask import current_app
 from app.utils.resilience import retry, circuit_breaker
+from requests.adapters import HTTPAdapter
+from urllib3.util.retry import Retry
 
 logger = logging.getLogger(__name__)
+
+# Create a session with no built-in retries to avoid confusion with @retry decorator
+session = requests.Session()
+adapter = HTTPAdapter(max_retries=Retry(total=0))  # Disable urllib3 retries
+session.mount('http://', adapter)
+session.mount('https://', adapter)
 
 def get_pricing_service_url():
     """Get pricing service URL from config or use default."""
@@ -17,17 +25,20 @@ def get_pricing_service_url():
         logger.warning(f"[COIN] No app context (RuntimeError: {str(e)}). Using fallback PRICING_SERVICE_URL: {url}")
         return url
 
-@retry(max_attempts=3, delay=1)
 @circuit_breaker(failure_threshold=5, recovery_timeout=15, name="pricing_service")
+@retry(max_attempts=3, delay=1)
 def _fetch_coin_price(url: str) -> dict:
     """
     Fetch coin price from pricing service with resilience patterns.
     
-    Decorators:
-    - @retry: Automatically retries up to 3 times with 1 second delay between attempts
-    - @circuit_breaker: Stops sending requests after 5 failures, recovers after 15 seconds
+    Decorator order (outermost to innermost):
+    1. @circuit_breaker: Fails fast when service is down (prevents cascading failures)
+    2. @retry: Retries transient failures up to 3 times with exponential backoff
+    
+    This order ensures: circuit breaker can reject requests immediately without retry interference.
     """
-    response = requests.get(url, timeout=5)
+    # Use session without built-in retries (we have @retry decorator for that)
+    response = session.get(url, timeout=5)
     response.raise_for_status()
     return response.json()
 
